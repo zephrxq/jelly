@@ -15,7 +15,7 @@ To recreate this project with the same configuration:
 
 ```sh
 # recreate this project
-npx sv@0.15.1 create --template demo --no-types --add sveltekit-adapter="adapter:static" --install npm client
+npx sv@0.15.1 create --template minimal --no-types --add sveltekit-adapter="adapter:static" --install npm client
 ```
 
 ## Developing

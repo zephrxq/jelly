@@ -1,60 +1,33 @@
 <script>
-	import welcomeFallback from '$lib/images/svelte-welcome.png';
-	import welcome from '$lib/images/svelte-welcome.webp';
+    import { onMount, onDestroy } from "svelte";
+    import { io } from "socket.io-client";
 
-	import Counter from './Counter.svelte';
+    let socket;
+    let roomId = $state();
+    let roomData = $state({})
+
+    $effect(() => {
+        socket = io("localhost:3000");
+    })
+
+    function tryJoinRoom() {
+        socket.emit("join-room", roomId, (joinResult) => {
+            if(joinResult.status == "success") {
+                roomData = joinResult.roomData;
+                joinRoom();
+            }
+            if(joinResult.status == "fail") {
+                alert("Failed ", joinResult.reason);
+            }
+        })
+    }
+    
+    function joinRoom() {
+        alert("Joined room ", roomData);
+    }
+
 </script>
 
-<svelte:head>
-	<title>Home</title>
-	<meta name="description" content="Svelte demo app" />
-</svelte:head>
-
-<section>
-	<h1>
-		<span class="welcome">
-			<picture>
-				<source srcset={welcome} type="image/webp" />
-				<img src={welcomeFallback} alt="Welcome" />
-			</picture>
-		</span>
-
-		to your new<br />SvelteKit app
-	</h1>
-
-	<h2>
-		try editing <strong>src/routes/+page.svelte</strong>
-	</h2>
-
-	<Counter />
-</section>
-
-<style>
-	section {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		flex: 0.6;
-	}
-
-	h1 {
-		width: 100%;
-	}
-
-	.welcome {
-		display: block;
-		position: relative;
-		width: 100%;
-		height: 0;
-		padding: 0 0 calc(100% * 495 / 2048) 0;
-	}
-
-	.welcome img {
-		position: absolute;
-		width: 100%;
-		height: 100%;
-		top: 0;
-		display: block;
-	}
-</style>
+<h1>Jelly</h1>
+<input bind:value={roomId}>
+<button onclick={tryJoinRoom}>Join room</button>

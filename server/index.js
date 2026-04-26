@@ -18,9 +18,23 @@ const roomData = {
 }
 
 io.on("connection", (socket) => {
-    // implement some shit to check room
-    const roomId = "1";
+  socket.on("join-room", (roomId, callback) => {
+    if(!Object.keys(roomData).includes(roomId)) {
+      callback({
+        status: "fail",
+        reason: "Room not found!"
+      })
+      return;
+    }
+    
     socket.join(roomId);
-    io.to(roomId).emit("connection");
-    socket.emit(roomData[roomId]);
+    io.to(roomId).emit("room-join");
+    
+    callback({
+      status: "success",
+      roomData: roomData[roomId]
+    })
+  })
 })
+
+httpServer.listen(3000);
