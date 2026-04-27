@@ -2,6 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { exec } from "child_process";
+import { dotenv } from "dotenv";
 
 const app = express();
 const httpServer = createServer(app);
@@ -13,7 +14,9 @@ const io = new Server(httpServer, {
 })
 
 const roomData = {};
-const apiKey = "AIzaSyBGEXCV6tyMe6jFLpY0ZzIDC-gORmM2NQU";
+
+dotenv.config();
+const apiKey = process.env.API_KEY;
 
 io.on("connection", (socket) => {
     let currentRoom = "";
