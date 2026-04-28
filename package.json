@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node server/index.js | cd clients && npm run dev"
+    "dev": "concurrently \"node server/index.js\" \"cd client && npm run dev\""
   },
   "author": "",
   "license": "ISC",
@@ -14,5 +14,8 @@
     "express": "^5.2.1",
     "npm": "^11.13.0",
     "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

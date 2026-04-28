@@ -2,7 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { exec } from "child_process";
-import { dotenv } from "dotenv";
+import dotenv from "dotenv";
 
 const app = express();
 const httpServer = createServer(app);
@@ -56,8 +56,26 @@ io.on("connection", (socket) => {
         }
     })
     
-    socket.on("add-song", (songData, callback) => {
-        roomData[currentRoom].queue.push(songData);
+    socket.on("add-song", (songId, callback) => {
+        const params = new URLSearchParams({
+            part: "snippet,contentDetails",
+            id: songId,
+            key: apiKey
+        })
+
+        fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`)
+            .then((res) => res.json())
+            .then((data) => {
+                const song = songData.items[0];
+                const songData = {
+                    id: song.id,
+                    title: song.snippet.title,
+                    artist: song.snippet.channelTitle,
+                    duration: song.contentDetails.duration
+                }
+                roomData[currentRoom].queue.push(songData);
+                console.log(roomData[currentRoom.queue])
+            })
     })
 
     socket.on("search", (query, callback) => {
