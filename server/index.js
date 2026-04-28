@@ -21,6 +21,7 @@ const apiKey = process.env.API_KEY;
 io.on("connection", (socket) => {
     let currentRoom = "";
     let searchResults = {};
+    let nickname = "zeph"; // implement some kinda login system
 
     socket.on("join-room", (roomId, callback) => {
         if(!Object.keys(roomData).includes(roomId)) {
@@ -54,6 +55,11 @@ io.on("connection", (socket) => {
             queue: [],
             song: {}
         }
+        
+        callback({
+            status: "success",
+            roomData: roomData[currentRoom]
+        })
     })
     
     socket.on("add-song", (songId, callback) => {
@@ -66,7 +72,7 @@ io.on("connection", (socket) => {
         fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`)
             .then((res) => res.json())
             .then((data) => {
-                const song = songData.items[0];
+                const song = data.items[0];
                 const songData = {
                     id: song.id,
                     title: song.snippet.title,
@@ -74,7 +80,6 @@ io.on("connection", (socket) => {
                     duration: song.contentDetails.duration
                 }
                 roomData[currentRoom].queue.push(songData);
-                console.log(roomData[currentRoom.queue])
             })
     })
 

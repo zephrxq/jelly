@@ -28,11 +28,23 @@
         console.log(roomData)
     }
 
-    function search() {
-        if(!roomId || !searchQuery) return;
+    function createRoom() {
+        socket.emit("create-room", (createResult) => {
+            if(createResult.status == "success") {
+                roomData = createResult.roomData;
+                joinRoom();
+            } else if(createResult.status == "fail") {
+                alert("Failed ", createResult.reason);
+            }
+        })
+    }
 
+    function search() {
+        if(!roomData || !searchQuery) return;
+        console.log("hi")
         socket.emit("search", searchQuery, (data) => {
             searchResults = data;
+            console.log(searchResults)
         })
     }
 
@@ -44,6 +56,7 @@
 <h1>Jelly</h1>
 <input bind:value={roomId}>
 <button onclick={tryJoinRoom}>Join room</button>
+<button onclick={createRoom}>Create room</button>
 <input bind:value={searchQuery}>
 <button onclick={search}>Search</button>
 <div id="searchResults">
@@ -51,7 +64,7 @@
         <div id="searchResult">
             <p>{searchResult.snippet.channelTitle}</p>
             <p>{searchResult.snippet.title}</p>
-            <button onclick={addSong(searchResult.video.id)}>Add to queue</button>
+            <button onclick={() => addSong(searchResult.id.videoId)}>Add to queue</button>
         </div>
     {/each}
 </div>
