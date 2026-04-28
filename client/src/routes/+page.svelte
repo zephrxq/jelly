@@ -5,8 +5,8 @@
     let socket;
     let roomId = $state();
     let roomData = $state({});
-    let searchQuery = state();
-    let searchResults = state([]);
+    let searchQuery = $state();
+    let searchResults = $state([]);
 
     $effect(() => {
         socket = io("localhost:3000");
@@ -36,8 +36,8 @@
         })
     }
 
-    function addSong(songData) {
-        socket.emit("add-song", songData);
+    function addSong(songId) {
+        socket.emit("add-song", songId);
     }
 </script>
 
@@ -51,7 +51,7 @@
         <div id="searchResult">
             <p>{searchResult.snippet.channelTitle}</p>
             <p>{searchResult.snippet.title}</p>
-            <button onclick={addSong(searchResult)}>Add to queue</button>
+            <button onclick={addSong(searchResult.video.id)}>Add to queue</button>
         </div>
     {/each}
 </div>
