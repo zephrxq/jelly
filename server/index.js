@@ -77,7 +77,13 @@ io.on("connection", (socket) => {
                     id: song.id,
                     title: song.snippet.title,
                     artist: song.snippet.channelTitle,
-                    duration: song.contentDetails.duration
+                    duration: song.contentDetails.duration,
+                    thumbnail:
+                        song.snippet.thumbnails.maxres?.url ||
+                        song.snippet.thumbnails.standard?.url ||
+                        song.snippet.thumbnails.high?.url ||
+                        song.snippet.thumbnails.medium?.url ||
+                        song.snippet.thumbnails.default?.url
                 }
                 roomData[currentRoom].queue.push(songData);
             })
@@ -89,7 +95,8 @@ io.on("connection", (socket) => {
             q: query,
             type: "video",
             maxResults: 10,
-            order: "viewCount",
+            order: "relevance",
+            videoCategoryId: 10,
             key: apiKey
         })
 
