@@ -13,7 +13,8 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "npm": "^11.13.0",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "tinyduration": "^3.4.1"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

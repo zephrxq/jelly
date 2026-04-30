@@ -7,12 +7,31 @@
     let roomData = $state({});
     let searchQuery = $state();
     let searchResults = $state([]);
+    let audioElem = $state();
+    let audioSource = $state();
     let homeElem = $state();
     let roomElem = $state();
 
-    $effect(() => {
+    onMount(() => {
         socket = io("localhost:3000");
+
+        socket.on("play-song", (data) => {
+            roomData = data;
+            playSong();
+        })
     })
+
+    function playSong() {
+        if(Object.keys(roomData.song).length == 0) {
+            return;
+        }
+        console.log(roomData)
+
+        audioSource.src = roomData.song.url;
+        audioElem.load();
+        audioElem.currentTime = Math.max(Date.now() - roomData.song.timeStart, 0) / 1000;
+        audioElem.play();
+    }
 
     function tryJoinRoom() {
         socket.emit("join-room", roomId, (joinResult) => {
@@ -27,7 +46,7 @@
     
     function joinRoom() {
         alert("Joined room ");
-        console.log(roomData)
+        playSong();
     }
 
     function createRoom() {
@@ -62,6 +81,9 @@
     </div>
 {:else}
     <div bind:this={roomElem}>
+        <audio bind:this={audioElem}>
+            <source bind:this={audioSource}>
+        </audio>
         <input bind:value={searchQuery}>
         <button onclick={search}>Search</button>
         <div id="searchResults">
