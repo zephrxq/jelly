@@ -1,5 +1,5 @@
 <script>
-    import { onMount, onDestroy } from "svelte";
+    import { onMount, onDestroy, tick } from "svelte";
     import { io } from "socket.io-client";
 
     let socket;
@@ -8,7 +8,7 @@
     let searchQuery = $state();
     let searchResults = $state([]);
     let audioElem = $state();
-    let audioSource = $state();
+    let audioSrc = $state();
     let homeElem = $state();
     let roomElem = $state();
 
@@ -25,12 +25,12 @@
         if(Object.keys(roomData.song).length == 0) {
             return;
         }
-        console.log(roomData)
 
-        audioSource.src = roomData.song.url;
-        audioElem.load();
-        audioElem.currentTime = Math.max(Date.now() - roomData.song.timeStart, 0) / 1000;
-        audioElem.play();
+        audioSrc = roomData.song.url;
+        audioElem.onloadedmetadata = () => {
+            audioElem.currentTime = (Date.now() - roomData.song.timeStart) / 1000;
+            audioElem.play();
+        }
     }
 
     function tryJoinRoom() {
@@ -72,28 +72,22 @@
     }
 </script>
 
-{#if Object.keys(roomData).length == 0}
-    <div bind:this={homeElem}>
-        <h1>Jelly</h1>
-        <input bind:value={roomId}>
-        <button onclick={tryJoinRoom}>Join room</button>
-        <button onclick={createRoom}>Create room</button>
+<div bind:this={homeElem}>
+    <input bind:value={roomId}>
+    <button onclick={tryJoinRoom}>Join room</button>
+    <button onclick={createRoom}>Create room</button>
+</div>
+<div bind:this={roomElem}>
+    <audio bind:this={audioElem} src={audioSrc} controls></audio>
+    <input bind:value={searchQuery}>
+    <button onclick={search}>Search</button>
+    <div id="searchResults">
+        {#each searchResults as searchResult, index}
+            <div id="searchResult">
+                <p>{searchResult.snippet.channelTitle}</p>
+                <p>{searchResult.snippet.title}</p>
+                <button onclick={() => addSong(searchResult.id.videoId)}>Add to queue</button>
+            </div>
+        {/each}
     </div>
-{:else}
-    <div bind:this={roomElem}>
-        <audio bind:this={audioElem}>
-            <source bind:this={audioSource}>
-        </audio>
-        <input bind:value={searchQuery}>
-        <button onclick={search}>Search</button>
-        <div id="searchResults">
-            {#each searchResults as searchResult, index}
-                <div id="searchResult">
-                    <p>{searchResult.snippet.channelTitle}</p>
-                    <p>{searchResult.snippet.title}</p>
-                    <button onclick={() => addSong(searchResult.id.videoId)}>Add to queue</button>
-                </div>
-            {/each}
-        </div>
-    </div>
-{/if}
+</div>

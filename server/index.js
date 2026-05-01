@@ -19,7 +19,7 @@ const roomsData = {};
 dotenv.config();
 const apiKey = process.env.API_KEY;
 
-const START_OFFSET = 500;
+const START_OFFSET = 0;
 
 io.on("connection", (socket) => {
     let currentRoomId = "";
