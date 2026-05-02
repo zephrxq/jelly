@@ -1,0 +1,115 @@
+:root {
+    --text: hsl(300, 10%, 90%);
+    --background: hsl(300, 4%, 5%);
+    --primary: hsl(304, 11%, 72%);
+    --secondary: hsl(338, 11%, 34%);
+    --accent: hsl(354, 11%, 50%);
+
+    --text-50: hsl(300, 12%, 95%);
+    --text-100: hsl(300, 10%, 90%);
+    --text-200: hsl(300, 10%, 80%);
+    --text-300: hsl(300, 10%, 70%);
+    --text-400: hsl(300, 10%, 60%);
+    --text-500: hsl(300, 10%, 50%);
+    --text-600: hsl(300, 10%, 40%);
+    --text-700: hsl(300, 10%, 30%);
+    --text-800: hsl(300, 10%, 20%);
+    --text-900: hsl(300, 10%, 10%);
+    --text-950: hsl(300, 12%, 5%);
+
+    --background-50: hsl(300, 4%, 95%);
+    --background-100: hsl(300, 6%, 90%);
+    --background-200: hsl(300, 4%, 80%);
+    --background-300: hsl(300, 5%, 70%);
+    --background-400: hsl(300, 4%, 60%);
+    --background-500: hsl(300, 4%, 50%);
+    --background-600: hsl(300, 4%, 40%);
+    --background-700: hsl(300, 5%, 30%);
+    --background-800: hsl(300, 4%, 20%);
+    --background-900: hsl(300, 6%, 10%);
+    --background-950: hsl(300, 4%, 5%);
+
+    --primary-50: hsl(320, 12%, 95%);
+    --primary-100: hsl(300, 10%, 90%);
+    --primary-200: hsl(305, 12%, 80%);
+    --primary-300: hsl(304, 11%, 70%);
+    --primary-400: hsl(303, 11%, 60%);
+    --primary-500: hsl(304, 11%, 50%);
+    --primary-600: hsl(303, 11%, 40%);
+    --primary-700: hsl(304, 11%, 30%);
+    --primary-800: hsl(305, 12%, 20%);
+    --primary-900: hsl(300, 10%, 10%);
+    --primary-950: hsl(300, 12%, 5%);
+
+    --secondary-50: hsl(340, 12%, 95%);
+    --secondary-100: hsl(336, 10%, 90%);
+    --secondary-200: hsl(335, 12%, 80%);
+    --secondary-300: hsl(339, 11%, 70%);
+    --secondary-400: hsl(338, 11%, 60%);
+    --secondary-500: hsl(337, 11%, 50%);
+    --secondary-600: hsl(338, 11%, 40%);
+    --secondary-700: hsl(339, 11%, 30%);
+    --secondary-800: hsl(335, 12%, 20%);
+    --secondary-900: hsl(336, 10%, 10%);
+    --secondary-950: hsl(340, 12%, 5%);
+
+    --accent-50: hsl(0, 12%, 95%);
+    --accent-100: hsl(0, 10%, 90%);
+    --accent-200: hsl(350, 12%, 80%);
+    --accent-300: hsl(353, 11%, 70%);
+    --accent-400: hsl(355, 11%, 60%);
+    --accent-500: hsl(354, 11%, 50%);
+    --accent-600: hsl(355, 11%, 40%);
+    --accent-700: hsl(353, 11%, 30%);
+    --accent-800: hsl(350, 12%, 20%);
+    --accent-900: hsl(0, 10%, 10%);
+    --accent-950: hsl(340, 12%, 5%);
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    background-color: var(--background);
+    margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6, p, button, input {
+    color: var(--text);
+    font-family: "Cabin", sans-serif;
+}
+
+h1 {
+    font-size: 2em;
+}
+
+h2 {
+    font-size: 1.5em;
+}
+
+h3 {
+    font-size: 1.17em;
+}
+
+p {
+    font-size: 1rem;
+}
+
+button {
+    cursor: pointer;
+    background-color: var(--primary);
+    color: var(--background);
+    padding: 12px 16px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+}
+
+input {
+    font-size: 1rem;
+    background-color: var(--primary-800);
+    padding: 12px 16px;
+    border: none;
+    color: var(--text);
+    outline: none;
+    border-radius: 4px;
+}

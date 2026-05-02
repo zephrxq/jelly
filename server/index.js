@@ -132,7 +132,7 @@ function playSong(roomId, roomData) {
     
     roomData.song = roomData.queue.shift();
 
-    let execCmd = `python ./server/yt-dlp -g -q --no-warnings https://youtube.com/watch?v=${roomData.song.id}`;
+    let execCmd = `python ./server/yt-dlp -f bestaudio -g -q --no-warnings https://youtube.com/watch?v=${roomData.song.id}`;
 
     exec(execCmd, (error, stdout, stderr) => {
         if(error) {
