@@ -66,6 +66,37 @@
     --accent-950: hsl(340, 12%, 5%);
 }
 
+/* Legacy WebKit — older Chrome/Edge/Safari, radius, borders & shadows */
+*::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+*::-webkit-scrollbar-track {
+  background-color: transparent;
+  border-radius: 0px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--background-700);
+  border-radius: 0px;
+  min-height: 30px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--background-600);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: var(--background-500);
+}
+
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 html, body {
     height: 100%;
     width: 100%;
@@ -76,6 +107,7 @@ html, body {
 h1, h2, h3, h4, h5, h6, p, button, input {
     color: var(--text);
     font-family: "Cabin", sans-serif;
+    text-align: left;
 }
 
 h1 {
@@ -106,10 +138,19 @@ button {
 
 input {
     font-size: 1rem;
-    background-color: var(--primary-800);
+    background-color: var(--primary-700);
     padding: 12px 16px;
     border: none;
     color: var(--text);
     outline: none;
-    border-radius: 4px;
+    border-radius: 8px;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+}
+
+.feather {
+    stroke: var(--text);
 }

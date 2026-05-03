@@ -2,6 +2,7 @@
     import { onMount, onDestroy, tick } from "svelte";
     import { io } from "socket.io-client";
     import Alert from "$lib/Alert.svelte";
+    import feather from "feather-icons";
 
     let socket;
     let showRoomInput = $state(false);
@@ -17,6 +18,7 @@
     let alerts = $state([]);
 
     onMount(() => {
+        feather.replace();
         socket = io("localhost:3000");
 
         socket.on("play-song", (data) => {
@@ -128,16 +130,21 @@
 </div>
 <div bind:this={roomElem} hidden={!isInRoom}>
     <audio bind:this={audioElem} src={audioSrc}></audio>
-    <input bind:value={searchQuery}>
-    <button onclick={search}>Search</button>
-    <div id="searchResults">
-        {#each searchResults as searchResult, index}
-            <div id="searchResult">
-                <p>{decodeHtml(searchResult.snippet.channelTitle)}</p>
-                <p>{decodeHtml(searchResult.snippet.title)}</p>
-                <button onclick={() => addSong(searchResult.id.videoId)}>Add to queue</button>
-            </div>
-        {/each}
+    <div id="search">
+        <div id="searchBar">
+            <input bind:value={searchQuery} onkeydown={(event) => { if(event.key == "Enter") search(); }}>
+            <button aria-label="Search" onclick={search}>
+                <i data-feather="search"></i>
+            </button>
+        </div>
+        <div id="searchResults">
+            {#each searchResults as searchResult, index}
+                <button class="searchResult" onclick={() => addSong(searchResult.id.videoId)}>
+                    <h3>{decodeHtml(searchResult.snippet.title)}</h3>
+                    <p>{decodeHtml(searchResult.snippet.channelTitle)}</p>
+                </button>
+            {/each}
+        </div>
     </div>
 </div>
 
@@ -148,5 +155,69 @@
 
     h1 {
         margin-top: 32px;
+    }
+
+    div#search {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 30%;
+    }
+
+    div#searchBar {
+        height: fit-content;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        background-color: var(--primary-700);
+        border-radius: 999px;
+    }
+
+    div#searchBar input {
+        flex: 1;
+        border-radius: 999px 0 0 999px;
+        box-sizing: border-box;
+        width: 0%;
+        padding-right: 0;
+    }
+
+    div#searchBar button {
+        border-radius: 0 999px 999px 0;
+        background-color: var(--primary-700);
+    }
+
+    div#searchResults {
+        margin-top: 16px;
+        height: fit-content;
+        width: 100%;
+        overflow-y: auto;
+        flex: 1;
+        border-radius: 16px;
+    }
+
+    button.searchResult {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 32px;
+        align-items: start;
+        background-color: var(--background);
+        margin: 0;
+        border-radius: 0;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 16px 24px;
+    }
+
+    button.searchResult:hover {
+        background-color: var(--background-800);
+    }
+
+    button.searchResult h3 {
+        margin: 0;
+        margin-bottom: 8px;
+    }
+    
+    button.searchResult p {
+        margin: 0;
     }
 </style>

@@ -43,11 +43,17 @@
     }
 
     p {
-        margin: 0 0 16px 0;
+        margin: 0 0 24px 0;
+    }
+
+    input {
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0 0 8px 0;
     }
 
     .buttons {
-        margin: 16px 0 0 0;
+        margin: 0;
         display: flex;
         flex-direction: row;
         justify-content: flex-end;
@@ -55,10 +61,5 @@
 
     button {
         margin: 0 0 0 8px;
-    }
-
-    input {
-        width: 100%;
-        box-sizing: border-box;
     }
 </style>
