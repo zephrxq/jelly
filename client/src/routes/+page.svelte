@@ -138,12 +138,14 @@
             </button>
         </div>
         <div id="searchResults">
-            {#each searchResults as searchResult, index}
-                <button class="searchResult" onclick={() => addSong(searchResult.id.videoId)}>
-                    <h3>{decodeHtml(searchResult.snippet.title)}</h3>
-                    <p>{decodeHtml(searchResult.snippet.channelTitle)}</p>
-                </button>
-            {/each}
+            <div id="searchResultsScroll">
+                {#each searchResults as searchResult, index}
+                    <button class="searchResult" onclick={() => addSong(searchResult.id.videoId)}>
+                        <h3>{decodeHtml(searchResult.snippet.title)}</h3>
+                        <p>{decodeHtml(searchResult.snippet.channelTitle)}</p>
+                    </button>
+                {/each}
+            </div>
         </div>
     </div>
 </div>
@@ -190,9 +192,15 @@
         margin-top: 16px;
         height: fit-content;
         width: 100%;
-        overflow-y: auto;
+        overflow-y: hidden;
         flex: 1;
-        border-radius: 16px;
+        border-radius: 4px;
+    }
+
+    div#searchResultsScroll {
+        height: 100%;
+        width: 100%;
+        overflow-y: auto;
     }
 
     button.searchResult {
