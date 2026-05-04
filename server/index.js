@@ -20,6 +20,13 @@ dotenv.config();
 const apiKey = process.env.API_KEY;
 
 const START_OFFSET = 0;
+const EMPTY_SONG = {
+    id: "",
+    title: "",
+    artist: "",
+    duration: "",
+    thumbnail: ""
+}
 
 io.on("connection", (socket) => {
     let currentRoomId = "";
@@ -57,7 +64,7 @@ io.on("connection", (socket) => {
         roomsData[currentRoomId] = {
             owner: nickname,
             queue: [],
-            song: {}
+            song: EMPTY_SONG
         }
         
         callback({
@@ -94,7 +101,7 @@ io.on("connection", (socket) => {
                 }
                 roomsData[currentRoomId].queue.push(songData);
 
-                if(Object.keys(roomsData[currentRoomId].song) == 0) {
+                if(!roomsData[currentRoomId].song.id) {
                     playSong(currentRoomId, roomsData[currentRoomId]);
                 }
             })
@@ -121,8 +128,10 @@ io.on("connection", (socket) => {
 })
 
 function endSong(roomId, roomData) {
-    roomData.song = {};
+    roomData.song = EMPTY_SONG;
     roomsData[roomId] = roomData;
+    
+    io.to(roomId).emit("end-song", roomData);
 }
 
 function playSong(roomId, roomData) {

@@ -10,13 +10,13 @@
 		"prepare": "svelte-kit sync || echo ''"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-static": "^3.0.10",
-		"@sveltejs/kit": "^2.57.0",
+		"@sveltejs/kit": "^2.59.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"svelte": "^5.55.2",
 		"vite": "^8.0.7"
 	},
 	"dependencies": {
+		"@sveltejs/adapter-static": "^3.0.10",
 		"feather-icons": "^4.29.2",
 		"socket.io-client": "^4.8.3"
 	}
