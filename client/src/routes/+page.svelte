@@ -164,6 +164,8 @@
         flex-direction: column;
         height: 100vh;
         width: 30%;
+        padding: 16px;
+        box-sizing: border-box;
     }
 
     div#searchBar {
@@ -171,7 +173,7 @@
         width: 100%;
         display: flex;
         flex-direction: row;
-        background-color: var(--primary-700);
+        background-color: transparent;
         border-radius: 999px;
     }
 
@@ -180,12 +182,21 @@
         border-radius: 999px 0 0 999px;
         box-sizing: border-box;
         width: 0%;
-        padding-right: 0;
+        padding: 8px 0 8px 16px;
     }
 
     div#searchBar button {
         border-radius: 0 999px 999px 0;
-        background-color: var(--primary-700);
+        background-color: var(--background-700);
+        padding: 8px 12px;
+    }
+
+    div#searchBar input:hover ~ button {
+        background-color: var(--background-600);
+    }
+
+    div#searchBar input:focus ~ button {
+        background-color: var(--background-700);
     }
 
     div#searchResults {
@@ -193,14 +204,16 @@
         height: fit-content;
         width: 100%;
         overflow-y: hidden;
-        flex: 1;
-        border-radius: 4px;
+        border-radius: 8px;
+        transition: 0.1s;
     }
-
+    
     div#searchResultsScroll {
-        height: 100%;
+        height: fit-content;
+        max-height: 100%;
         width: 100%;
         overflow-y: auto;
+        transition: 0.1s;
     }
 
     button.searchResult {
