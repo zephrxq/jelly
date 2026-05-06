@@ -15,6 +15,7 @@ const io = new Server(httpServer, {
 })
 
 const roomsData = {};
+const timeouts = {};
 
 dotenv.config();
 const apiKey = process.env.API_KEY;
@@ -107,11 +108,15 @@ io.on("connection", (socket) => {
     })
 
     socket.on("toggle-pause", () => {
+        if(!roomsData[currentRoomId] || !roomsData[currentRoomId].song.id) {
+            return;
+        }
+        
         togglePause(currentRoomId, roomsData[currentRoomId]);
     })
 
     socket.on("skip-next", () => {
-        if(roomsData[currentRoomId].queue.length == 0) {
+        if(!roomsData[currentRoomId] || roomsData[currentRoomId].queue.length == 0) {
             return;
         }
         
@@ -167,7 +172,7 @@ function playSong(roomId, roomData) {
 
         io.to(roomId).emit("play-song", roomData);
 
-        roomData.song.timeoutId = setTimeout(() => {
+        timeouts[roomId] = setTimeout(() => {
             endSong(roomId, roomData);
             playSong(roomId, roomData);
         }, roomData.song.duration + START_OFFSET)
@@ -178,11 +183,7 @@ function playSong(roomId, roomData) {
 }
 
 function togglePause(roomId, roomData) {
-    if(!roomData.song.id) {
-        return;
-    }
-
-    clearTimeout(roomData.song.timeoutId);
+    clearTimeout(timeouts[roomId]);
 
     roomData.song.paused = !roomData.song.paused;
 
@@ -193,8 +194,8 @@ function togglePause(roomId, roomData) {
         let timeNow = Date.now();
         roomData.song.timeStart += (timeNow - roomData.song.timePause);
         roomData.song.timeEnd = roomData.song.timeStart + roomData.song.duration;
-        console.log(roomData.song.timeEnd - timeNow)
-        roomData.song.timeoutId = setTimeout(() => {
+        
+        timeouts[roomId] = setTimeout(() => {
             endSong(roomId, roomData);
             playSong(roomId, roomData);
         }, roomData.song.timeEnd - timeNow)
