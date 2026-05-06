@@ -2,7 +2,7 @@
     import { onMount, onDestroy, tick } from "svelte";
     import { io } from "socket.io-client";
     import Alert from "$lib/Alert.svelte";
-    import feather from "feather-icons";
+    import { Play, Pause, SkipBack, SkipForward, Search } from "@lucide/svelte";
 
     let socket;
     let showRoomInput = $state(false);
@@ -14,11 +14,10 @@
     let homeElem = $state();
     let roomElem = $state();
     let isInRoom = $derived(Object.keys(roomData).length > 0);
-    
+    let playIcon = $state("play");
     let alerts = $state([]);
 
     onMount(() => {
-        feather.replace();
         socket = io("localhost:3000");
 
         socket.on("play-song", (data) => {
@@ -28,6 +27,20 @@
 
         socket.on("end-song", (data) => {
             roomData = data;
+            endSong();
+        })
+
+        socket.on("toggle-pause", (data) => {
+            roomData = data;
+
+            if(roomData.song.paused) {
+                playIcon = "play";
+                audioElem.pause();
+            } else {
+                playIcon = "pause";
+                audioElem.currentTime = (Date.now() - roomData.song.timeStart) / 1000;
+                audioElem.play();
+            }
         })
     })
 
@@ -52,15 +65,22 @@
     }
 
     function playSong() {
-        if(!roomData.song) {
+        if(!roomData.song.id) {
             return;
         }
-
+        
+        playIcon = "pause";
         audioSrc = roomData.song.url;
         audioElem.onloadedmetadata = () => {
             audioElem.currentTime = (Date.now() - roomData.song.timeStart) / 1000;
             audioElem.play();
         }
+    }
+
+    function endSong() {
+        playIcon = "play";
+        audioElem.pause();
+        audioSrc = "";
     }
 
     function toggleJoinInput() {
@@ -121,13 +141,21 @@
     function addSong(songId) {
         socket.emit("add-song", songId);
     }
+
+    function togglePause() {
+        socket.emit("toggle-pause");
+    }
+
+    function skipNext() {
+        socket.emit("skip-next");
+    }
 </script>
 
 {#each alerts as alertData, index}
     <Alert alertData={alertData} onClose={() => { removeAlert(index) }}></Alert>
 {/each}
 
-<div class="home" bind:this={homeElem} style="display: {!isInRoom ? "block" : "none"}">
+<div id="home" bind:this={homeElem} style="display: {!isInRoom ? "block" : "none"}">
     <h1>Home</h1>
     <button onclick={joinAlert}>Join room</button>
     <button onclick={createRoom}>Create room</button>
@@ -138,7 +166,7 @@
         <div id="searchBar">
             <input bind:value={searchQuery} onkeydown={(event) => { if(event.key == "Enter") search(); }}>
             <button aria-label="Search" onclick={search}>
-                <i fill="none" data-feather="search"></i>
+                <Search></Search>
             </button>
         </div>
         <div id="searchResults">
@@ -166,25 +194,33 @@
         </div>
         <div id="nowPlayingControls">
             <button id="back" aria-label="Back">
-                <i stroke="white" fill="white" height="32" width="32" data-feather="skip-back"></i>
+                <SkipBack size={28}></SkipBack>
             </button>
-            <button id="play" aria-label="Play">
-                <i stroke="white" fill="white" height="32" width="32" data-feather={playIcon}></i>
+            <button id="play" aria-label="Play" onclick={togglePause}>
+                {#if playIcon == "play"}
+                    <Play size={28}></Play>
+                {:else}
+                    <Pause size={28}></Pause>
+                {/if}
             </button>
-            <button id="next" aria-label="Next">
-                <i stroke="white" fill="white" height="32" width="32" data-feather="skip-forward"></i>
+            <button id="next" aria-label="Next" onclick={skipNext}>
+                <SkipForward size={28}></SkipForward>
             </button>
         </div>
     </div>
 </div>
 
 <style>
-    .home {
-        padding: 0 32px;
+    #home {
+        padding: 16px;
     }
 
-    h1 {
-        margin-top: 32px;
+    #home h1 {
+        margin: 0 0 16px 0;
+    }
+
+    #home button {
+        margin-right: 4px;
     }
 
     div#roomElem {
@@ -315,8 +351,8 @@
     }
     
     div#nowPlayingControls button {
-        height: 24px;
-        width: 24px;
+        height: 28px;
+        width: 28px;
         padding: 8px;
         border-radius: 50%;
         box-sizing: content-box;

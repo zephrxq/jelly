@@ -32,8 +32,8 @@
         left: 50%;
         transform: translate(-50%, -50%);
         height: fit-content;
-        width: 30vw;
-        padding: 32px;
+        width: 25vw;
+        padding: 16px 20px;
         border-radius: 8px;
         background-color: var(--background-900);
     }
@@ -43,13 +43,13 @@
     }
 
     p {
-        margin: 0 0 24px 0;
+        margin: 0 0 16px 0;
     }
 
     input {
         width: 100%;
         box-sizing: border-box;
-        margin: 0 0 8px 0;
+        margin: 8px 0 16px 0;
     }
 
     .buttons {

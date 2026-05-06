@@ -9,7 +9,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: "http://localhost:5173",
+        origin: "*",
         methods: ["GET", "POST"]
     }
 })
@@ -25,7 +25,8 @@ const EMPTY_SONG = {
     title: "",
     artist: "",
     duration: "",
-    thumbnail: ""
+    thumbnail: "",
+    paused: true
 }
 
 io.on("connection", (socket) => {
@@ -71,8 +72,6 @@ io.on("connection", (socket) => {
             status: "success",
             roomData: roomsData[currentRoomId]
         })
-
-        console.log(roomsData)
     })
     
     socket.on("add-song", (songId, callback) => {
@@ -105,6 +104,19 @@ io.on("connection", (socket) => {
                     playSong(currentRoomId, roomsData[currentRoomId]);
                 }
             })
+    })
+
+    socket.on("toggle-pause", () => {
+        togglePause(currentRoomId, roomsData[currentRoomId]);
+    })
+
+    socket.on("skip-next", () => {
+        if(roomsData[currentRoomId].queue.length == 0) {
+            return;
+        }
+        
+        endSong(currentRoomId, roomsData[currentRoomId]);
+        playSong(currentRoomId, roomsData[currentRoomId]);
     })
 
     socket.on("search", (query, callback) => {
@@ -152,16 +164,45 @@ function playSong(roomId, roomData) {
         roomData.song.url = stdout.trim();
         roomData.song.timeStart = timeNow + START_OFFSET;
         roomData.song.timeEnd = roomData.song.timeStart + roomData.song.duration;
-        
+
         io.to(roomId).emit("play-song", roomData);
 
-        roomsData[roomId] = roomData;
-
-        setTimeout(() => {
+        roomData.song.timeoutId = setTimeout(() => {
             endSong(roomId, roomData);
             playSong(roomId, roomData);
         }, roomData.song.duration + START_OFFSET)
+
+        roomsData[roomId] = roomData;
+
     })
+}
+
+function togglePause(roomId, roomData) {
+    if(!roomData.song.id) {
+        return;
+    }
+
+    clearTimeout(roomData.song.timeoutId);
+
+    roomData.song.paused = !roomData.song.paused;
+
+    if(roomData.song.paused) {
+        let timeNow = Date.now();
+        roomData.song.timePause = timeNow;
+    } else {
+        let timeNow = Date.now();
+        roomData.song.timeStart += (timeNow - roomData.song.timePause);
+        roomData.song.timeEnd = roomData.song.timeStart + roomData.song.duration;
+        console.log(roomData.song.timeEnd - timeNow)
+        roomData.song.timeoutId = setTimeout(() => {
+            endSong(roomId, roomData);
+            playSong(roomId, roomData);
+        }, roomData.song.timeEnd - timeNow)
+    }
+    
+    io.to(roomId).emit("toggle-pause", roomData);
+
+    roomsData[roomId] = roomData;
 }
 
 httpServer.listen(3000);
