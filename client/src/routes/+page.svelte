@@ -138,7 +138,6 @@
     function search() {
         if(!roomData || !searchQuery) return;
         socket.emit("search", searchQuery, (data) => {
-            console.log(data)
             searchResults = data;
         })
     }
@@ -282,6 +281,11 @@
         overflow-y: hidden;
         border-radius: 8px;
         transition: 0.1s;
+        box-shadow: 0px 0px 0px 0.25px var(--background-200);
+    }
+    
+    div#searchResults:has(div#searchResultsScroll:empty) {
+        box-shadow: none;
     }
     
     div#searchResultsScroll {

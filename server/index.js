@@ -19,7 +19,7 @@ const timeouts = new Map();
 
 dotenv.config();
 const apiKey = process.env.API_KEY;
-console.log(apiKey)
+
 const START_OFFSET = 0;
 const EMPTY_SONG = {
     id: "",
@@ -102,11 +102,16 @@ io.on("connection", (socket) => {
                         song.snippet.thumbnails.medium?.url ||
                         song.snippet.thumbnails.default?.url
                 }
-                currentRoomData.queue.push(songData);
 
-                if(!currentRoomData.song.id) {
-                    playSong(currentRoomId, currentRoomData);
-                }
+                getYoutubeLink(songId)
+                    .then((songUrl) => {
+                        songData.url = songUrl;
+                        currentRoomData.queue.push(songData);
+
+                        if(!currentRoomData.song.id) {
+                            playSong(currentRoomId, currentRoomData);
+                        }
+                    })
             })
     })
 
@@ -142,7 +147,6 @@ io.on("connection", (socket) => {
             .then(res => res.json())
             .then(data => {
                 searchResults = data;
-                console.log(searchResults, apiKey)
                 callback(searchResults.items);
             })
     })
@@ -160,26 +164,18 @@ function playSong(roomId, roomData) {
     }
     
     roomData.song = roomData.queue.shift();
+    
+    const timeNow = Date.now();
+    
+    roomData.song.timeStart = timeNow + START_OFFSET;
+    roomData.song.timeEnd = roomData.song.timeStart + roomData.song.duration;
 
-    let execCmd = `python ./server/yt-dlp -f bestaudio -g -q --no-warnings https://youtube.com/watch?v=${roomData.song.id}`;
+    io.to(roomId).emit("play-song", roomData);
 
-    exec(execCmd, (error, stdout, stderr) => {
-        if(error) {
-            return console.log(error);
-        }
-
-        const timeNow = Date.now();
-        roomData.song.url = stdout.trim();
-        roomData.song.timeStart = timeNow + START_OFFSET;
-        roomData.song.timeEnd = roomData.song.timeStart + roomData.song.duration;
-
-        io.to(roomId).emit("play-song", roomData);
-
-        timeouts.set(roomId, setTimeout(() => {
-            endSong(roomId, roomData);
-            playSong(roomId, roomData);
-        }, roomData.song.duration + START_OFFSET))
-    })
+    timeouts.set(roomId, setTimeout(() => {
+        endSong(roomId, roomData);
+        playSong(roomId, roomData);
+    }, roomData.song.duration + START_OFFSET))
 }
 
 function togglePause(roomId, roomData) {
@@ -202,6 +198,21 @@ function togglePause(roomId, roomData) {
     }
     
     io.to(roomId).emit("toggle-pause", roomData);
+}
+
+function getYoutubeLink(songId) {
+    let execCmd = `python ./server/yt-dlp -f bestaudio -g -q --no-warnings https://youtube.com/watch?v=${songId}`;
+
+
+    return new Promise((resolve, reject) => {
+        exec(execCmd, (error, stdout, stderr) => {
+            if(error) {
+                reject();
+            } else {
+                resolve(stdout.trim());
+            }
+        })
+    })
 }
 
 httpServer.listen(3000);
