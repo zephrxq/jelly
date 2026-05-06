@@ -2,7 +2,11 @@
     import { onMount, onDestroy, tick } from "svelte";
     import { io } from "socket.io-client";
     import Alert from "$lib/Alert.svelte";
-    import { Play, Pause, SkipBack, SkipForward, Search } from "@lucide/svelte";
+    import Play from "@lucide/svelte/icons/play";
+    import Pause from "@lucide/svelte/icons/pause";
+    import SkipBack from "@lucide/svelte/icons/skip-back";
+    import SkipForward from "@lucide/svelte/icons/skip-forward";
+    import Search from "@lucide/svelte/icons/search";
 
     let socket;
     let showRoomInput = $state(false);
@@ -134,6 +138,7 @@
     function search() {
         if(!roomData || !searchQuery) return;
         socket.emit("search", searchQuery, (data) => {
+            console.log(data)
             searchResults = data;
         })
     }

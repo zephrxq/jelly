@@ -14,12 +14,12 @@ const io = new Server(httpServer, {
     }
 })
 
-const roomsData = {};
-const timeouts = {};
+const rooms = new Map();
+const timeouts = new Map();
 
 dotenv.config();
 const apiKey = process.env.API_KEY;
-
+console.log(apiKey)
 const START_OFFSET = 0;
 const EMPTY_SONG = {
     id: "",
@@ -32,11 +32,12 @@ const EMPTY_SONG = {
 
 io.on("connection", (socket) => {
     let currentRoomId = "";
+    let currentRoomData = "";
     let searchResults = {};
     let nickname = "zeph"; // implement some kinda login system
 
     socket.on("join-room", (roomId, callback) => {
-        if(!Object.keys(roomsData).includes(roomId)) {
+        if(rooms.has(roomId)) {
             callback({
                 status: "fail",
                 reason: "Room not found!"
@@ -51,27 +52,29 @@ io.on("connection", (socket) => {
         }
 
         currentRoomId = roomId;
+        currentRoomData = rooms.get(currentRoomId);
         socket.join(roomId);
 
         callback({
             status: "success",
-            roomData: roomsData[roomId]
+            roomData: rooms.get(roomId)
         })
     })
 
     socket.on("create-room", (callback) => {
         currentRoomId = socket.id.toUpperCase();
-        socket.join(currentRoomId);
 
-        roomsData[currentRoomId] = {
+        socket.join(currentRoomId);
+        rooms.set(currentRoomId, {
             owner: nickname,
             queue: [],
             song: EMPTY_SONG
-        }
-        
+        })
+        currentRoomData = rooms.get(currentRoomId);
+
         callback({
             status: "success",
-            roomData: roomsData[currentRoomId]
+            roomData: currentRoomData
         })
     })
     
@@ -99,29 +102,29 @@ io.on("connection", (socket) => {
                         song.snippet.thumbnails.medium?.url ||
                         song.snippet.thumbnails.default?.url
                 }
-                roomsData[currentRoomId].queue.push(songData);
+                currentRoomData.queue.push(songData);
 
-                if(!roomsData[currentRoomId].song.id) {
-                    playSong(currentRoomId, roomsData[currentRoomId]);
+                if(!currentRoomData.song.id) {
+                    playSong(currentRoomId, currentRoomData);
                 }
             })
     })
 
     socket.on("toggle-pause", () => {
-        if(!roomsData[currentRoomId] || !roomsData[currentRoomId].song.id) {
+        if(!currentRoomData || !currentRoomData.song.id) {
             return;
         }
         
-        togglePause(currentRoomId, roomsData[currentRoomId]);
+        togglePause(currentRoomId, currentRoomData);
     })
 
     socket.on("skip-next", () => {
-        if(!roomsData[currentRoomId] || roomsData[currentRoomId].queue.length == 0) {
+        if(!currentRoomData || !currentRoomData.queue.length) {
             return;
         }
         
-        endSong(currentRoomId, roomsData[currentRoomId]);
-        playSong(currentRoomId, roomsData[currentRoomId]);
+        endSong(currentRoomId, currentRoomData);
+        playSong(currentRoomId, currentRoomData);
     })
 
     socket.on("search", (query, callback) => {
@@ -139,14 +142,14 @@ io.on("connection", (socket) => {
             .then(res => res.json())
             .then(data => {
                 searchResults = data;
+                console.log(searchResults, apiKey)
                 callback(searchResults.items);
             })
     })
 })
 
 function endSong(roomId, roomData) {
-    roomData.song = EMPTY_SONG;
-    roomsData[roomId] = roomData;
+    roomData.song = EMPTY_SONG;;
     
     io.to(roomId).emit("end-song", roomData);
 }
@@ -172,18 +175,15 @@ function playSong(roomId, roomData) {
 
         io.to(roomId).emit("play-song", roomData);
 
-        timeouts[roomId] = setTimeout(() => {
+        timeouts.set(roomId, setTimeout(() => {
             endSong(roomId, roomData);
             playSong(roomId, roomData);
-        }, roomData.song.duration + START_OFFSET)
-
-        roomsData[roomId] = roomData;
-
+        }, roomData.song.duration + START_OFFSET))
     })
 }
 
 function togglePause(roomId, roomData) {
-    clearTimeout(timeouts[roomId]);
+    clearTimeout(timeouts.get(roomId));
 
     roomData.song.paused = !roomData.song.paused;
 
@@ -195,15 +195,13 @@ function togglePause(roomId, roomData) {
         roomData.song.timeStart += (timeNow - roomData.song.timePause);
         roomData.song.timeEnd = roomData.song.timeStart + roomData.song.duration;
         
-        timeouts[roomId] = setTimeout(() => {
+        timeouts.set(roomId, setTimeout(() => {
             endSong(roomId, roomData);
             playSong(roomId, roomData);
-        }, roomData.song.timeEnd - timeNow)
+        }, roomData.song.timeEnd - timeNow))
     }
     
     io.to(roomId).emit("toggle-pause", roomData);
-
-    roomsData[roomId] = roomData;
 }
 
 httpServer.listen(3000);
