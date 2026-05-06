@@ -37,7 +37,7 @@ io.on("connection", (socket) => {
     let nickname = "zeph"; // implement some kinda login system
 
     socket.on("join-room", (roomId, callback) => {
-        if(rooms.has(roomId)) {
+        if(!rooms.has(roomId)) {
             callback({
                 status: "fail",
                 reason: "Room not found!"
@@ -88,6 +88,14 @@ io.on("connection", (socket) => {
         fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`)
             .then((res) => res.json())
             .then((data) => {
+                if(!data.items || data.items.length == 0) {
+                    callback({
+                        status: "fail",
+                        reason: "Invalid video"
+                    })
+                    return;
+                }
+
                 const song = data.items[0];
                 const songDuration = parse(song.contentDetails.duration);
                 const songData = {
@@ -103,7 +111,7 @@ io.on("connection", (socket) => {
                         song.snippet.thumbnails.default?.url
                 }
 
-                getYoutubeLink(songId)
+                getYoutubeLink(song.id)
                     .then((songUrl) => {
                         songData.url = songUrl;
                         currentRoomData.queue.push(songData);
@@ -144,8 +152,8 @@ io.on("connection", (socket) => {
         })
 
         fetch(`https://www.googleapis.com/youtube/v3/search?${params}`)
-            .then(res => res.json())
-            .then(data => {
+            .then((res) => res.json())
+            .then((data) => {
                 searchResults = data;
                 callback(searchResults.items);
             })
@@ -166,7 +174,7 @@ function playSong(roomId, roomData) {
     roomData.song = roomData.queue.shift();
     
     const timeNow = Date.now();
-    
+
     roomData.song.timeStart = timeNow + START_OFFSET;
     roomData.song.timeEnd = roomData.song.timeStart + roomData.song.duration;
 
@@ -201,11 +209,11 @@ function togglePause(roomId, roomData) {
 }
 
 function getYoutubeLink(songId) {
-    let execCmd = `python ./server/yt-dlp -f bestaudio -g -q --no-warnings https://youtube.com/watch?v=${songId}`;
+    let execCmd = ["./server/yt-dlp", "-f", "bestaudio", "-g", "-q", "--no-warnings", `https://youtube.com/watch?v=${songId}`];
 
 
     return new Promise((resolve, reject) => {
-        exec(execCmd, (error, stdout, stderr) => {
+        execFile("python", execCmd, (error, stdout, stderr) => {
             if(error) {
                 reject();
             } else {
