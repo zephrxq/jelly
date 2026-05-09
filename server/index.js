@@ -74,14 +74,14 @@ function createRoom(id, owner) {
                     })
 
                     timeouts.set(id, setTimeout(() => {
-                        get().dispatchEvent({ type: "end-song" });
-                        get().dispatchEvent({ type: "play-next" });
+                        get().dispatchEvent({ type: "skip-next" });
                     }, song.duration))
                     
                     break;
                 }
 
                 case "end-song": {
+                    clearTimeout(timeouts.get(id));
                     get().applyEvent(event);
 
                     break;
@@ -101,10 +101,13 @@ function createRoom(id, owner) {
                     
                     get().applyEvent(event);
 
-                    timeouts.set(id, setTimeout(() => {
-                        get().applyEvent(event);
-                    }, get().song.duration - get().position))
-
+                    if(get().status == "playing") {
+                        clearTimeout(get().timeout);
+                    } else if(get().status == "paused") {
+                        timeouts.set(id, setTimeout(() => {
+                            get().dispatchEvent({ type: "skip-next" });
+                        }, get().song.duration - get().getPosition()))
+                    }
                     break;
                 }
 
@@ -126,8 +129,6 @@ function createRoom(id, owner) {
                     }
                     
                     case "end-song": {
-                        clearTimeout(state.timeout);
-
                         return {
                             song: EMPTY_SONG,
                             status: "idle"
@@ -146,7 +147,6 @@ function createRoom(id, owner) {
 
                     case "toggle-pause": {
                         if(state.status == "playing") {
-                            clearTimeout(state.timeout);
                             return {
                                 status: "paused",
                                 position: get().getPosition()
@@ -170,8 +170,11 @@ function createRoom(id, owner) {
     }))
 
     roomStore.subscribe((state) => {
-        console.log(state)
-        io.to(id).emit("state", state);
+        io.to(id).emit("state", {
+            ...state,
+            position: state.getPosition()
+        })
+        console.log(id)
     })
 
     rooms.set(id, roomStore);
