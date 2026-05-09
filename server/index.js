@@ -183,19 +183,24 @@ function createRoom(id, owner) {
 io.on("connection", (socket) => {
     let roomId = "";
     let searchResults = {};
-    let nickname = "zeph";
 
-    socket.on("join-room", (id, callback) => {
+    socket.on("join-room", (nickname, id, callback) => {
         if(!rooms.has(id)) {
             callback({
                 status: "fail",
                 reason: "Room not found!"
             })
             return;
-        } else if(socket.rooms.length > 1) {
+        } else if(socket.rooms.size > 1) {
             callback({
                 status: "fail",
                 reason: "You are already in a room."
+            })
+            return;
+        } else if(!nickname.trim()) {
+            callback({
+                status: "fail",
+                reason: "Invalid nickname"
             })
             return;
         }
@@ -215,7 +220,15 @@ io.on("connection", (socket) => {
         })
     })
 
-    socket.on("create-room", (callback) => {
+    socket.on("create-room", (nickname, callback) => {
+        if(!nickname.trim()) {
+            callback({
+                status: "fail",
+                reason: "Invalid nickname"
+            })
+            return;
+        }
+        
         roomId = socket.id.toUpperCase();
         createRoom(roomId, nickname);
         
@@ -226,6 +239,10 @@ io.on("connection", (socket) => {
         room.dispatchEvent({
             type: "join-room",
             nickname
+        })
+
+        callback({
+            status: "success"
         })
     })
     

@@ -19,8 +19,10 @@
     let isInRoom = $derived(Object.keys(room).length > 0);
     let playIcon = $state("play");
     let alerts = $state([]);
+    let nickname = $state();
 
     onMount(() => {
+        nickname = localStorage.getItem("nickname");
         socket = io("localhost:3000");
 
         socket.on("state", (state) => {
@@ -81,25 +83,48 @@
         })
     }
 
+    function checkNickname(callback) {
+        if(!nickname) {
+            addAlert({
+                title: "Set nickname",
+                text: "You must set a nickname",
+                isInput: true,
+                acceptEmpty: false,
+                onInput: (input) => {
+                    localStorage.setItem("nickname", input.trim());
+                    nickname = localStorage.getItem("nickname");
+
+                    callback();
+                }
+            })
+        } else {
+            callback();
+        }
+    }
+
     function joinRoom(roomId) {
-        socket.emit("join-room", roomId, (joinResult) => {
-            if(joinResult.status == "fail") {
-                addAlert({
-                    title: "Failed to join room",
-                    text: joinResult.reason
-                })
-            }
+        checkNickname(() => {
+            socket.emit("join-room", roomId, nickname, (joinResult) => {
+                if(joinResult.status == "fail") {
+                    addAlert({
+                        title: "Failed to join room",
+                        text: joinResult.reason
+                    })
+                }
+            })
         })
     }
     
     function createRoom() {
-        socket.emit("create-room", (createResult) => {
-            if(createResult.status == "fail") {
-                return addAlert({
-                    title: "Failed to create room",
-                    text: createResult.reason
-                })
-            }
+        checkNickname(() => {
+            socket.emit("create-room", nickname, (createResult) => {
+                if(createResult.status == "fail") {
+                    return addAlert({
+                        title: "Failed to create room",
+                        text: createResult.reason
+                    })
+                }
+            })
         })
     }
 

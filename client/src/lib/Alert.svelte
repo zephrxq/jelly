@@ -3,6 +3,10 @@
     let inputData = $state();
 
     function onInput() {
+        if(!alertData.acceptEmpty && !inputData) {
+            return;
+        }
+
         onClose();
         alertData.onInput(inputData);
     }
@@ -12,7 +16,7 @@
     <h2>{alertData.title}</h2>
     <p>{alertData.text}</p>
     {#if alertData.isInput}
-        <input bind:value={inputData}>
+        <input bind:value={inputData} onkeydown={(event) => { if(event.key == "Enter") onInput(); }}>
     {/if}
     <div class="buttons">
         <button onclick={onClose}>{alertData.isInput ? "Cancel" : "Close"}</button>
