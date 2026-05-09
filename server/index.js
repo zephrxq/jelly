@@ -2,8 +2,9 @@ import express from "express";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { parse } from "tinyduration";
+import { createStore } from "zustand/vanilla";
 
 const app = express();
 const httpServer = createServer(app);
@@ -14,30 +15,175 @@ const io = new Server(httpServer, {
     }
 })
 
-const rooms = new Map();
-const timeouts = new Map();
-
 dotenv.config();
 const apiKey = process.env.API_KEY;
 
-const START_OFFSET = 0;
 const EMPTY_SONG = {
     id: "",
-    title: "",
-    artist: "",
-    duration: "",
+    title: "Nothing playing",
+    artist: "Unknown artist",
     thumbnail: "",
-    paused: true
+    paused: true,
+    duration: 0
+}
+
+const rooms = new Map();
+const timeouts = new Map();
+
+function createRoom(id, owner) {
+    const roomStore = createStore((set, get) => ({
+        owner,
+        queue: [],
+        members: [],
+        song: EMPTY_SONG,
+        status: "idle",
+        startTime: 0,
+        position: 0,
+        id,
+
+        getPosition: () => {
+            const state = get();
+
+            if(state.status !== "playing") {
+                return state.position;
+            }
+
+            return state.position + Date.now() - state.startTime;
+        },
+
+        dispatchEvent: (event) => {
+            switch(event.type) {
+                case "add-song": {
+                    get().applyEvent(event);
+                    
+                    if(get().song.id == "") {
+                        get().dispatchEvent({ type: "play-next" });
+                    }
+
+                    break;
+                }
+
+                case "play-next": {
+                    const song = get().queue[0];
+                    
+                    if(!song) return;
+
+                    get().applyEvent({
+                        type: "play-next",
+                        song
+                    })
+
+                    timeouts.set(id, setTimeout(() => {
+                        get().dispatchEvent({ type: "end-song" });
+                        get().dispatchEvent({ type: "play-next" });
+                    }, song.duration))
+                    
+                    break;
+                }
+
+                case "end-song": {
+                    get().applyEvent(event);
+
+                    break;
+                }
+
+                case "skip-next": {
+                    get().dispatchEvent({ type: "end-song" });
+                    get().dispatchEvent({ type: "play-next" });
+
+                    break;
+                }
+
+                case "toggle-pause": {
+                    if(get().song.id == "") {
+                        return;
+                    }
+                    
+                    get().applyEvent(event);
+
+                    timeouts.set(id, setTimeout(() => {
+                        get().applyEvent(event);
+                    }, get().song.duration - get().position))
+
+                    break;
+                }
+
+                case "join-room": {
+                    get().applyEvent(event);
+
+                    break;
+                }
+            }
+        },
+
+        applyEvent: (event) => {
+            set((state) => {
+                switch(event.type) {
+                    case "add-song": {
+                        return {
+                            queue: [...state.queue, event.song]
+                        }
+                    }
+                    
+                    case "end-song": {
+                        clearTimeout(state.timeout);
+
+                        return {
+                            song: EMPTY_SONG,
+                            status: "idle"
+                        }
+                    }
+
+                    case "play-next": {
+                        return {
+                            queue: state.queue.slice(1),
+                            song: event.song,
+                            status: "playing",
+                            startTime: Date.now(),
+                            position: 0
+                        }
+                    }
+
+                    case "toggle-pause": {
+                        if(state.status == "playing") {
+                            clearTimeout(state.timeout);
+                            return {
+                                status: "paused",
+                                position: get().getPosition()
+                            }
+                        }
+                        
+                        return {
+                            status: "playing",
+                            startTime: Date.now()
+                        }
+                    }
+                    
+                    case "join-room": {
+                        return {
+                            members: [...state.members, event.nickname]
+                        }
+                    }
+                }
+            })
+        }
+    }))
+
+    roomStore.subscribe((state) => {
+        console.log(state)
+        io.to(id).emit("state", state);
+    })
+
+    rooms.set(id, roomStore);
 }
 
 io.on("connection", (socket) => {
-    let currentRoomId = "";
-    let currentRoomData = "";
+    let roomId = "";
     let searchResults = {};
-    let nickname = "zeph"; // implement some kinda login system
+    let nickname = "zeph";
 
-    socket.on("join-room", (roomId, callback) => {
-        if(!rooms.has(roomId)) {
+    socket.on("join-room", (id, callback) => {
+        if(!rooms.has(id)) {
             callback({
                 status: "fail",
                 reason: "Room not found!"
@@ -51,30 +197,32 @@ io.on("connection", (socket) => {
             return;
         }
 
-        currentRoomId = roomId;
-        currentRoomData = rooms.get(currentRoomId);
+        roomId = id;
         socket.join(roomId);
+        
+        const room = rooms.get(roomId).getState();
+
+        room.dispatchEvent({
+            type: "join-room",
+            nickname
+        })
 
         callback({
-            status: "success",
-            roomData: rooms.get(roomId)
+            status: "success"
         })
     })
 
     socket.on("create-room", (callback) => {
-        currentRoomId = socket.id.toUpperCase();
+        roomId = socket.id.toUpperCase();
+        createRoom(roomId, nickname);
+        
+        const room = rooms.get(roomId).getState();
 
-        socket.join(currentRoomId);
-        rooms.set(currentRoomId, {
-            owner: nickname,
-            queue: [],
-            song: EMPTY_SONG
-        })
-        currentRoomData = rooms.get(currentRoomId);
+        socket.join(roomId);
 
-        callback({
-            status: "success",
-            roomData: currentRoomData
+        room.dispatchEvent({
+            type: "join-room",
+            nickname
         })
     })
     
@@ -114,30 +262,22 @@ io.on("connection", (socket) => {
                 getYoutubeLink(song.id)
                     .then((songUrl) => {
                         songData.url = songUrl;
-                        currentRoomData.queue.push(songData);
-
-                        if(!currentRoomData.song.id) {
-                            playSong(currentRoomId, currentRoomData);
-                        }
+                        
+                        rooms.get(roomId).getState().dispatchEvent({
+                            type: "add-song",
+                            song: songData
+                        })
                     })
             })
     })
 
     socket.on("toggle-pause", () => {
-        if(!currentRoomData || !currentRoomData.song.id) {
-            return;
-        }
-        
-        togglePause(currentRoomId, currentRoomData);
+        rooms.get(roomId).getState().dispatchEvent({ type: "toggle-pause" });
     })
 
     socket.on("skip-next", () => {
-        if(!currentRoomData || !currentRoomData.queue.length) {
-            return;
-        }
-        
-        endSong(currentRoomId, currentRoomData);
-        playSong(currentRoomId, currentRoomData);
+        rooms.get(roomId).getState().dispatchEvent({ type: "end-song" });
+        rooms.get(roomId).getState().dispatchEvent({ type: "play-next" });
     })
 
     socket.on("search", (query, callback) => {
@@ -159,54 +299,6 @@ io.on("connection", (socket) => {
             })
     })
 })
-
-function endSong(roomId, roomData) {
-    roomData.song = EMPTY_SONG;;
-    
-    io.to(roomId).emit("end-song", roomData);
-}
-
-function playSong(roomId, roomData) {
-    if(roomData.queue.length == 0) {
-        return;
-    }
-    
-    roomData.song = roomData.queue.shift();
-    
-    const timeNow = Date.now();
-
-    roomData.song.timeStart = timeNow + START_OFFSET;
-    roomData.song.timeEnd = roomData.song.timeStart + roomData.song.duration;
-
-    io.to(roomId).emit("play-song", roomData);
-
-    timeouts.set(roomId, setTimeout(() => {
-        endSong(roomId, roomData);
-        playSong(roomId, roomData);
-    }, roomData.song.duration + START_OFFSET))
-}
-
-function togglePause(roomId, roomData) {
-    clearTimeout(timeouts.get(roomId));
-
-    roomData.song.paused = !roomData.song.paused;
-
-    if(roomData.song.paused) {
-        let timeNow = Date.now();
-        roomData.song.timePause = timeNow;
-    } else {
-        let timeNow = Date.now();
-        roomData.song.timeStart += (timeNow - roomData.song.timePause);
-        roomData.song.timeEnd = roomData.song.timeStart + roomData.song.duration;
-        
-        timeouts.set(roomId, setTimeout(() => {
-            endSong(roomId, roomData);
-            playSong(roomId, roomData);
-        }, roomData.song.timeEnd - timeNow))
-    }
-    
-    io.to(roomId).emit("toggle-pause", roomData);
-}
 
 function getYoutubeLink(songId) {
     let execCmd = ["./server/yt-dlp", "-f", "bestaudio", "-g", "-q", "--no-warnings", `https://youtube.com/watch?v=${songId}`];

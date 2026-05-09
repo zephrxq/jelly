@@ -9,42 +9,43 @@
     import Search from "@lucide/svelte/icons/search";
 
     let socket;
-    let showRoomInput = $state(false);
-    let roomData = $state({});
+    let room = $state({});
     let searchQuery = $state();
     let searchResults = $state([]);
     let audioElem = $state();
     let audioSrc = $state();
     let homeElem = $state();
     let roomElem = $state();
-    let isInRoom = $derived(Object.keys(roomData).length > 0);
+    let isInRoom = $derived(Object.keys(room).length > 0);
     let playIcon = $state("play");
     let alerts = $state([]);
 
     onMount(() => {
         socket = io("localhost:3000");
 
-        socket.on("play-song", (data) => {
-            roomData = data;
-            playSong();
-        })
-
-        socket.on("end-song", (data) => {
-            roomData = data;
-            endSong();
-        })
-
-        socket.on("toggle-pause", (data) => {
-            roomData = data;
-
-            if(roomData.song.paused) {
-                playIcon = "play";
+        socket.on("state", (state) => {
+            room = {
+                ...room,
+                ...state
+            }
+            
+            if(state.status == "idle" || state.status == "paused") {
                 audioElem.pause();
-            } else {
-                playIcon = "pause";
-                audioElem.currentTime = (Date.now() - roomData.song.timeStart) / 1000;
+            } else if(state.status == "playing") {
                 audioElem.play();
             }
+
+            if(state.position) {
+                audioElem.currentTime = state.position / 1000;
+            }
+
+            if(audioSrc != room.song.url) {
+                audioSrc = room.song.url;
+                audioElem.onloadedmetadata = () => {
+                    audioElem.play();
+                }
+            }
+
         })
     })
 
@@ -68,29 +69,6 @@
         alerts.splice(index, 1);
     }
 
-    function playSong() {
-        if(!roomData.song.id) {
-            return;
-        }
-        
-        playIcon = "pause";
-        audioSrc = roomData.song.url;
-        audioElem.onloadedmetadata = () => {
-            audioElem.currentTime = (Date.now() - roomData.song.timeStart) / 1000;
-            audioElem.play();
-        }
-    }
-
-    function endSong() {
-        playIcon = "play";
-        audioElem.pause();
-        audioSrc = "";
-    }
-
-    function toggleJoinInput() {
-        showRoomInput = !showRoomInput;
-    }
-
     function joinAlert() {
         addAlert({
             title: "Join room",
@@ -98,17 +76,14 @@
             isInput: true,
             acceptEmpty: false,
             onInput: ((roomId) => {
-                tryJoinRoom(roomId)
+                joinRoom(roomId)
             })
         })
     }
 
-    function tryJoinRoom(roomId) {
+    function joinRoom(roomId) {
         socket.emit("join-room", roomId, (joinResult) => {
-            if(joinResult.status == "success") {
-                roomData = joinResult.roomData;
-                joinRoom();
-            } else if(joinResult.status == "fail") {
+            if(joinResult.status == "fail") {
                 addAlert({
                     title: "Failed to join room",
                     text: joinResult.reason
@@ -117,17 +92,10 @@
         })
     }
     
-    function joinRoom() {
-        playSong();
-    }
-
     function createRoom() {
         socket.emit("create-room", (createResult) => {
-            if(createResult.status == "success") {
-                roomData = createResult.roomData;
-                joinRoom();
-            } else if(createResult.status == "fail") {
-                addAlert({
+            if(createResult.status == "fail") {
+                return addAlert({
                     title: "Failed to create room",
                     text: createResult.reason
                 })
@@ -136,7 +104,7 @@
     }
 
     function search() {
-        if(!roomData || !searchQuery) return;
+        if(!room || !searchQuery) return;
         socket.emit("search", searchQuery, (data) => {
             searchResults = data;
         })
@@ -186,22 +154,16 @@
     </div>
     <div id="nowPlaying" class="tab">
         <div id="nowPlayingInfo">
-            {#if Object.keys(roomData).length > 0}
-                {#if roomData.song.thumbnail}
-                    <img alt="Thumbnail" src={roomData.song.thumbnail}>
-                {:else}
-                    <div class="fakeThumbnail"></div>
-                {/if}
-                <h2>{roomData.song.title}</h2>
-                <p>{roomData.song.artist}</p>
-            {/if}
+            <img alt="Thumbnail" src={room.song?.thumbnail}>
+            <h2>{room.song?.title}</h2>
+            <p>{room.song?.artist}</p>
         </div>
         <div id="nowPlayingControls">
             <button id="back" aria-label="Back">
                 <SkipBack size={28}></SkipBack>
             </button>
             <button id="play" aria-label="Play" onclick={togglePause}>
-                {#if playIcon == "play"}
+                {#if room.status == "paused" || room.status == "idle"}
                     <Play size={28}></Play>
                 {:else}
                     <Pause size={28}></Pause>
