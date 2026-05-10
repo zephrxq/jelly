@@ -184,8 +184,9 @@ io.on("connection", (socket) => {
     let roomId = "";
     let searchResults = {};
 
-    socket.on("join-room", (nickname, id, callback) => {
+    socket.on("join-room", (id, nickname, callback) => {
         if(!rooms.has(id)) {
+            console.log(id)
             callback({
                 status: "fail",
                 reason: "Room not found!"
@@ -228,7 +229,7 @@ io.on("connection", (socket) => {
             })
             return;
         }
-        
+
         roomId = socket.id.toUpperCase();
         createRoom(roomId, nickname);
         

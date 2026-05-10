@@ -179,7 +179,9 @@
     </div>
     <div id="nowPlaying" class="tab">
         <div id="nowPlayingInfo">
-            <img alt="Thumbnail" src={room.song?.thumbnail}>
+            <div id="thumbnail">
+                <img alt="Thumbnail" src={room.song?.thumbnail} hidden={!room.song?.thumbnail}>
+            </div>
             <h2>{room.song?.title}</h2>
             <p>{room.song?.artist}</p>
         </div>
@@ -318,7 +320,8 @@
         flex-direction: column;
     }
 
-    div#nowPlayingInfo .fakeThumbnail {
+    div#nowPlayingInfo #thumbnail {
+        height: fit-content;
         width: 100%;
         aspect-ratio: 16 / 9;
         background-color: var(--background-800);
