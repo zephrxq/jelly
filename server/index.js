@@ -5,6 +5,10 @@ import { Server } from "socket.io";
 import { execFile } from "child_process";
 import { parse } from "tinyduration";
 import { createStore } from "zustand/vanilla";
+import { betterAuth } from "better-auth";
+import { toNodeHandler } from "better-auth/node";
+import { username } from "better-auth/plugins";
+import cors from "cors";
 
 const app = express();
 const httpServer = createServer(app);
@@ -29,6 +33,25 @@ const EMPTY_SONG = {
 
 const rooms = new Map();
 const timeouts = new Map();
+
+const auth = betterAuth({
+    secret: process.env.BETTER_AUTH_SECRET,
+	baseURL: "http://localhost:5173",
+    session: {
+        strategy: "jwt",
+        expiresIn: 60 * 60 * 24,
+        updateAge: 60 * 60
+    },
+    emailAndPassword: {
+        enabled: true,
+        minPasswordLength: 8
+    },
+    plugins: [
+        username({
+            requireEmail: false,
+        })
+    ]
+})
 
 function createRoom(id, owner) {
     const roomStore = createStore((set, get) => ({
@@ -336,4 +359,10 @@ function getYoutubeLink(songId) {
     })
 }
 
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}))
+app.use(express.json());
+app.use("/api/auth", toNodeHandler(auth));
 httpServer.listen(3000);

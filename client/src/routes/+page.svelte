@@ -21,9 +21,23 @@
     let alerts = $state([]);
     let nickname = $state();
 
-    onMount(() => {
+    onMount(async () => {
         nickname = localStorage.getItem("nickname");
         socket = io("localhost:3000");
+
+        console.log(await fetch("http://localhost:3000/api/auth/sign-up/email", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            credentials: "include",
+            body: JSON.stringify({
+                email: "zephrequilme19@gmail.com",
+                password: "abc123123",
+                name: "hi"
+            })
+        }))
 
         socket.on("state", (state) => {
             room = {
@@ -200,6 +214,11 @@
                 <SkipForward size={28}></SkipForward>
             </button>
         </div>
+    </div>
+    <div id="members" class="tab">
+        {#each room.members as member}
+            <p>{member}</p>
+        {/each}
     </div>
 </div>
 
