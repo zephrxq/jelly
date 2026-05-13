@@ -5,17 +5,18 @@ import { Server } from "socket.io";
 import { execFile } from "child_process";
 import { parse } from "tinyduration";
 import { createStore } from "zustand/vanilla";
-import { betterAuth } from "better-auth";
 import { toNodeHandler } from "better-auth/node";
-import { username } from "better-auth/plugins";
+import { nanoid } from "nanoid";
+import { auth } from "./auth.js";
 import cors from "cors";
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"],
+        credentials: true
     }
 })
 
@@ -34,24 +35,8 @@ const EMPTY_SONG = {
 const rooms = new Map();
 const timeouts = new Map();
 
-const auth = betterAuth({
-    secret: process.env.BETTER_AUTH_SECRET,
-	baseURL: "http://localhost:5173",
-    session: {
-        strategy: "jwt",
-        expiresIn: 60 * 60 * 24,
-        updateAge: 60 * 60
-    },
-    emailAndPassword: {
-        enabled: true,
-        minPasswordLength: 8
-    },
-    plugins: [
-        username({
-            requireEmail: false,
-        })
-    ]
-})
+// temporary, move to db
+const users = new Map();
 
 function createRoom(id, owner) {
     const roomStore = createStore((set, get) => ({
@@ -78,7 +63,7 @@ function createRoom(id, owner) {
             switch(event.type) {
                 case "add-song": {
                     get().applyEvent(event);
-                    
+
                     if(get().song.id == "") {
                         get().dispatchEvent({ type: "play-next" });
                     }
@@ -96,6 +81,8 @@ function createRoom(id, owner) {
                         song
                     })
 
+                    console.log(get())
+                    
                     timeouts.set(id, setTimeout(() => {
                         get().dispatchEvent({ type: "skip-next" });
                     }, song.duration))
@@ -123,10 +110,10 @@ function createRoom(id, owner) {
                     }
                     
                     get().applyEvent(event);
-
-                    if(get().status == "playing") {
-                        clearTimeout(get().timeout);
-                    } else if(get().status == "paused") {
+                    
+                    if(get().status == "paused") {
+                        clearTimeout(timeouts.get(id));
+                    } else if(get().status == "playing") {
                         timeouts.set(id, setTimeout(() => {
                             get().dispatchEvent({ type: "skip-next" });
                         }, get().song.duration - get().getPosition()))
@@ -184,7 +171,7 @@ function createRoom(id, owner) {
                     
                     case "join-room": {
                         return {
-                            members: [...state.members, event.nickname]
+                            members: [...state.members, event.user]
                         }
                     }
                 }
@@ -197,46 +184,65 @@ function createRoom(id, owner) {
             ...state,
             position: state.getPosition()
         })
-        console.log(id)
     })
 
     rooms.set(id, roomStore);
 }
 
-io.on("connection", (socket) => {
-    let roomId = "";
-    let searchResults = {};
+async function authMiddleware(socket, next) {
+    const session = await auth.api.getSession({
+        headers: socket.request.headers
+    })
+    const roomId = users.get(session.user.id)?.room;
 
-    socket.on("join-room", (id, nickname, callback) => {
+    if(!session) {
+        socket.data.user = null;
+        return;
+    }
+    
+    if(!users.has(session.user.id)) {
+        users.set(session.user.id, { room: null });
+    } else if(roomId) {
+        const state = rooms.get(roomId).getState();
+        socket.join(roomId);
+        
+        io.to(roomId).emit("state", {
+            ...state,
+            position: state.getPosition()
+        })
+    }
+
+    socket.data.user = session.user;
+
+    next();
+}
+
+io.use(authMiddleware);
+
+io.on("connection", (socket) => {
+    socket.on("join-room", (id, callback) => {
         if(!rooms.has(id)) {
-            console.log(id)
             callback({
                 status: "fail",
                 reason: "Room not found!"
             })
             return;
-        } else if(socket.rooms.size > 1) {
+        } else if(users.get(socket.data.user.id)?.room) {
             callback({
                 status: "fail",
                 reason: "You are already in a room."
             })
             return;
-        } else if(!nickname.trim()) {
-            callback({
-                status: "fail",
-                reason: "Invalid nickname"
-            })
-            return;
         }
 
-        roomId = id;
-        socket.join(roomId);
+        const room = rooms.get(id).getState();
         
-        const room = rooms.get(roomId).getState();
+        socket.join(id);
+        users.get(socket.data.user.id).room = id;
 
         room.dispatchEvent({
             type: "join-room",
-            nickname
+            user: socket.data.user
         })
 
         callback({
@@ -244,32 +250,26 @@ io.on("connection", (socket) => {
         })
     })
 
-    socket.on("create-room", (nickname, callback) => {
-        if(!nickname.trim()) {
-            callback({
-                status: "fail",
-                reason: "Invalid nickname"
-            })
-            return;
-        }
+    socket.on("create-room", (callback) => {
+        const id = nanoid(8);
 
-        roomId = socket.id.toUpperCase();
-        createRoom(roomId, nickname);
+        createRoom(id, socket.data.user);
         
-        const room = rooms.get(roomId).getState();
+        const room = rooms.get(id).getState();
 
-        socket.join(roomId);
+        socket.join(id);
+        users.get(socket.data.user.id).room = id;
 
         room.dispatchEvent({
             type: "join-room",
-            nickname
+            user: socket.data.user
         })
 
         callback({
             status: "success"
         })
     })
-    
+
     socket.on("add-song", (songId, callback) => {
         const params = new URLSearchParams({
             part: "snippet,contentDetails",
@@ -306,8 +306,7 @@ io.on("connection", (socket) => {
                 getYoutubeLink(song.id)
                     .then((songUrl) => {
                         songData.url = songUrl;
-                        
-                        rooms.get(roomId).getState().dispatchEvent({
+                        rooms.get(users.get(socket.data.user.id).room).getState().dispatchEvent({
                             type: "add-song",
                             song: songData
                         })
@@ -316,12 +315,21 @@ io.on("connection", (socket) => {
     })
 
     socket.on("toggle-pause", () => {
-        rooms.get(roomId).getState().dispatchEvent({ type: "toggle-pause" });
+        rooms.get(users.get(socket.data.user.id).room).getState().dispatchEvent({
+            type: "toggle-pause",
+            user: socket.data.user
+        })
     })
 
     socket.on("skip-next", () => {
-        rooms.get(roomId).getState().dispatchEvent({ type: "end-song" });
-        rooms.get(roomId).getState().dispatchEvent({ type: "play-next" });
+        rooms.get(users.get(socket.data.user.id).room).getState().dispatchEvent({
+            type: "end-song",
+            user: socket.data.user
+        })
+        rooms.get(users.get(socket.data.user.id).room).getState().dispatchEvent({
+            type: "play-next",
+            user: socket.data.user
+        })
     })
 
     socket.on("search", (query, callback) => {
@@ -338,8 +346,7 @@ io.on("connection", (socket) => {
         fetch(`https://www.googleapis.com/youtube/v3/search?${params}`)
             .then((res) => res.json())
             .then((data) => {
-                searchResults = data;
-                callback(searchResults.items);
+                callback(data.items);
             })
     })
 })
@@ -363,6 +370,6 @@ app.use(cors({
     origin: "http://localhost:5173",
     credentials: true
 }))
+app.all("/api/auth/{*any}", toNodeHandler(auth.handler));
 app.use(express.json());
-app.use("/api/auth", toNodeHandler(auth));
 httpServer.listen(3000);
