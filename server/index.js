@@ -233,6 +233,11 @@ io.on("connection", (socket) => {
             user: socket.data.user
         })
 
+        io.to(`user:${user.id}`).emit("state", {
+            ...room,
+            position: room.getPosition()
+        })
+
         callback({
             status: "success"
         })
@@ -252,6 +257,11 @@ io.on("connection", (socket) => {
         room.dispatchEvent({
             type: "join-room",
             user: socket.data.user
+        })
+
+        io.to(`user:${user.id}`).emit("state", {
+            ...room,
+            position: room.getPosition()
         })
 
         callback({

@@ -4,7 +4,7 @@
 
     const authClient = createAuthClient({
         baseURL: "http://localhost:3000",
-        plugins: [ 
+        plugins: [
             usernameClient()
         ],
         fetchOptions: {
