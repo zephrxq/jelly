@@ -81,8 +81,6 @@ function createRoom(id, owner) {
                         song
                     })
 
-                    console.log(get())
-                    
                     timeouts.set(id, setTimeout(() => {
                         get().dispatchEvent({ type: "skip-next" });
                     }, song.duration))
@@ -180,7 +178,7 @@ function createRoom(id, owner) {
     }))
 
     roomStore.subscribe((state) => {
-        io.to(id).emit("state", {
+        io.to(`user:${owner.id}`).emit("state", {
             ...state,
             position: state.getPosition()
         })
@@ -193,7 +191,6 @@ async function authMiddleware(socket, next) {
     const session = await auth.api.getSession({
         headers: socket.request.headers
     })
-    const roomId = users.get(session.user.id)?.room;
 
     if(!session) {
         socket.data.user = null;
@@ -202,14 +199,6 @@ async function authMiddleware(socket, next) {
     
     if(!users.has(session.user.id)) {
         users.set(session.user.id, { room: null });
-    } else if(roomId) {
-        const state = rooms.get(roomId).getState();
-        socket.join(roomId);
-        
-        io.to(roomId).emit("state", {
-            ...state,
-            position: state.getPosition()
-        })
     }
 
     socket.data.user = session.user;
@@ -220,24 +209,23 @@ async function authMiddleware(socket, next) {
 io.use(authMiddleware);
 
 io.on("connection", (socket) => {
-    socket.on("join-room", (id, callback) => {
+    const user = socket.data.user;
+
+    socket.join(`user:${user.id}`);
+
+    socket.on("join-room", async (id, callback) => {
         if(!rooms.has(id)) {
             callback({
                 status: "fail",
                 reason: "Room not found!"
             })
             return;
-        } else if(users.get(socket.data.user.id)?.room) {
-            callback({
-                status: "fail",
-                reason: "You are already in a room."
-            })
-            return;
         }
 
         const room = rooms.get(id).getState();
         
-        socket.join(id);
+        io.in(`user:${user.id}`).socketsJoin(`room:${id}`);
+        
         users.get(socket.data.user.id).room = id;
 
         room.dispatchEvent({
@@ -250,14 +238,15 @@ io.on("connection", (socket) => {
         })
     })
 
-    socket.on("create-room", (callback) => {
+    socket.on("create-room", async (callback) => {
         const id = nanoid(8);
 
         createRoom(id, socket.data.user);
         
         const room = rooms.get(id).getState();
 
-        socket.join(id);
+        io.in(`user:${user.id}`).socketsJoin(`room:${id}`);
+        
         users.get(socket.data.user.id).room = id;
 
         room.dispatchEvent({
