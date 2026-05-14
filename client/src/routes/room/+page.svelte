@@ -1,7 +1,7 @@
 <script>
     import { onMount, onDestroy, tick } from "svelte";
     import { io } from "socket.io-client";
-    import Alert from "$lib/Alert.svelte";
+    import { addAlert } from "$lib/alerts.js";
     import Play from "@lucide/svelte/icons/play";
     import Pause from "@lucide/svelte/icons/pause";
     import SkipBack from "@lucide/svelte/icons/skip-back";
@@ -15,7 +15,6 @@
     let audioElem = $state();
     let audioSrc = $state();
     let playIcon = $state("play");
-    let alerts = $state([]);
     let nickname = $state();
 
     onMount(() => {
@@ -57,20 +56,6 @@
         return text.value;
     }
 
-    function addAlert({ title = "", text = "", isInput = false, acceptEmpty = true, onInput = () => {} }) {
-        alerts.push({
-            title: title,
-            text: text,
-            isInput: isInput,
-            acceptEmpty: acceptEmpty,
-            onInput: onInput
-        })
-    }
-
-    function removeAlert(index) {
-        alerts.splice(index, 1);
-    }
-
     function search() {
         if(!room || !searchQuery) return;
         socket.emit("search", searchQuery, (data) => {
@@ -90,10 +75,6 @@
         socket.emit("skip-next");
     }
 </script>
-
-{#each alerts as alertData, index}
-    <Alert alertData={alertData} onClose={() => { removeAlert(index) }}></Alert>
-{/each}
 
 <div id="room">
     <audio bind:this={audioElem} src={audioSrc}></audio>
@@ -169,13 +150,13 @@
         width: 100%;
         display: flex;
         flex-direction: row;
-        background-color: transparent;
+        background-color: var(--background-800);
         border-radius: 999px;
     }
 
     div#searchBar button {
         border-radius: 0 999px 999px 0;
-        background-color: var(--background-700);
+        background-color: inherit;
         padding: 8px 12px;
     }
 
@@ -185,14 +166,21 @@
         box-sizing: border-box;
         width: 0%;
         padding: 8px 0 8px 16px;
+        background-color: inherit;
+        box-shadow: none;
     }
 
-    div#searchBar input:hover ~ button {
-        background-color: var(--background-600);
+    div#searchBar input:hover {
+        box-shadow: none;
     }
 
-    div#searchBar input:focus ~ button {
+    div#searchBar:has(input:hover) {
         background-color: var(--background-700);
+    }
+
+    div#searchBar:has(input:focus) {
+        background-color: var(--background-800);
+        box-shadow: 0px 0px 0px 1px var(--background-200);
     }
 
     div#searchResults {

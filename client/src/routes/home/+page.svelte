@@ -1,12 +1,11 @@
 <script>
     import { onMount, onDestroy, tick } from "svelte";
     import { io } from "socket.io-client";
-    import Alert from "$lib/Alert.svelte";
+    import { addAlert } from "$lib/alerts";
     import { goto } from "$app/navigation";
 
     let socket;
     let room = $state({});
-    let alerts = $state([]);
 
     onMount(() => {
         socket = io("localhost:3000",{
@@ -17,20 +16,6 @@
             goto("/room");
         })
     })
-
-    function addAlert({ title = "", text = "", isInput = false, acceptEmpty = true, onInput = () => {} }) {
-        alerts.push({
-            title: title,
-            text: text,
-            isInput: isInput,
-            acceptEmpty: acceptEmpty,
-            onInput: onInput
-        })
-    }
-
-    function removeAlert(index) {
-        alerts.splice(index, 1);
-    }
 
     function joinAlert() {
         addAlert({
@@ -71,10 +56,6 @@
         })
     }
 </script>
-
-{#each alerts as alertData, index}
-    <Alert alertData={alertData} onClose={() => { removeAlert(index) }}></Alert>
-{/each}
 
 <div id="home">
     <h1>Home</h1>
