@@ -3,13 +3,12 @@
     import { io } from "socket.io-client";
     import { addAlert } from "$lib/alerts";
     import { goto } from "$app/navigation";
-    import { PUBLIC_SERVER_URL } from "$env/static/public";
 
     let socket;
     let room = $state({});
 
     onMount(() => {
-        socket = io(PUBLIC_SERVER_URL,{
+        socket = io("http://localhost:3000",{
             withCredentials: true
         })
 

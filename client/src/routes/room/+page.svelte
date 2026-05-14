@@ -7,7 +7,6 @@
     import SkipBack from "@lucide/svelte/icons/skip-back";
     import SkipForward from "@lucide/svelte/icons/skip-forward";
     import Search from "@lucide/svelte/icons/search";
-    import { PUBLIC_SERVER_URL } from "$env/static/public";
 
     let socket;
     let room = $state({});
@@ -18,7 +17,7 @@
     let playIcon = $state("play");
 
     onMount(() => {
-        socket = io(PUBLIC_SERVER_URL, {
+        socket = io("http://localhost:3000", {
             withCredentials: true
         })
 

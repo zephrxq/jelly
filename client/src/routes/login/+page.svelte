@@ -3,14 +3,13 @@
     import { usernameClient } from "better-auth/client/plugins";
     import { addAlert } from "$lib/alerts";
     import "../../login-signup.css";
-    import { PUBLIC_SERVER_URL } from "$env/static/public";
 
     let identifier = $state();
     let password = $state();
     let errorText = $state("");
 
     const authClient = createAuthClient({
-        baseURL: PUBLIC_SERVER_URL,
+        baseURL: "http://localhost:3000",
         plugins: [
             usernameClient()
         ],
