@@ -3,6 +3,7 @@
     import { usernameClient } from "better-auth/client/plugins";
     import { addAlert } from "$lib/alerts";
     import "../../login-signup.css";
+  import { goto } from "$app/navigation";
 
     let name = $state();
     let username = $state();
@@ -32,14 +33,16 @@
             username: username,
             name: name,
             email: email,
-            password: password,
-            callbackURL: "/home"
+            password: password
         },
         {
             onError: (ctx) => {
                 errorText = ctx.error.message;
+            },
+            onSuccess: (ctx) => {
+                goto("/home");
             }
-        })
+        },)
         
         console.log(data, error);
     }

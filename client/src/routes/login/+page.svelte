@@ -3,7 +3,6 @@
     import { usernameClient } from "better-auth/client/plugins";
     import { addAlert } from "$lib/alerts";
     import "../../login-signup.css";
-  import { error } from "@sveltejs/kit";
 
     let identifier = $state();
     let password = $state();
@@ -30,12 +29,14 @@
         if(identifier.includes("@")) {
             const { data, error } = await authClient.signIn.email({
                 email: identifier,
-                password: password,
-                callbackURL: "/home"
+                password: password
             },
             {
                 onError: (ctx) => {
                     errorText = ctx.error.message;
+                },
+                onSuccess: (ctx) => {
+                    goto("/home");
                 }
             })
         } else {
