@@ -1,5 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
+
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { execFile } from "child_process";
@@ -13,13 +15,12 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: "http://localhost:5173",
+        origin: process.env.CLIENT_URL,
         methods: ["GET", "POST"],
         credentials: true
     }
 })
 
-dotenv.config();
 const apiKey = process.env.API_KEY;
 
 const EMPTY_SONG = {
@@ -352,7 +353,7 @@ setInterval(() => {
 }, 500)
 
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL,
     credentials: true
 }))
 app.all("/api/auth/{*any}", toNodeHandler(auth.handler));

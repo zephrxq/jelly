@@ -7,6 +7,7 @@
     import SkipBack from "@lucide/svelte/icons/skip-back";
     import SkipForward from "@lucide/svelte/icons/skip-forward";
     import Search from "@lucide/svelte/icons/search";
+    import { PUBLIC_SERVER_URL } from "$env/static/public";
 
     let socket;
     let room = $state({});
@@ -15,11 +16,9 @@
     let audioElem = $state();
     let audioSrc = $state();
     let playIcon = $state("play");
-    let nickname = $state();
 
     onMount(() => {
-        nickname = localStorage.getItem("nickname");
-        socket = io("localhost:3000", {
+        socket = io(PUBLIC_SERVER_URL, {
             withCredentials: true
         })
 

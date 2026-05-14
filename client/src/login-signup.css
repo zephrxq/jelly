@@ -33,7 +33,7 @@ p#error {
 }
 
 button {
-    text-align: center;
+    text-align: center !important;
     padding: 12px;
     margin: 0;
 }

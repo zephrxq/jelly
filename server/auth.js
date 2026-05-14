@@ -7,8 +7,7 @@ export const db = new Database("./db.sqlite");
 export const auth = betterAuth({
     database: db,
     secret: process.env.BETTER_AUTH_SECRET,
-    trustedOrigins: ["http://localhost:5173"],
-    baseURL: "http://localhost:3000",
+    trustedOrigins: process.env.CLIENT_URL,
     emailAndPassword: {
         enabled: true,
         minPasswordLength: 8
