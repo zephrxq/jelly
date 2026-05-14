@@ -150,7 +150,7 @@
         width: 100%;
         display: flex;
         flex-direction: row;
-        background-color: var(--background-800);
+        background-color: var(--background-700);
         border-radius: 999px;
     }
 
@@ -175,11 +175,11 @@
     }
 
     div#searchBar:has(input:hover) {
-        background-color: var(--background-700);
+        background-color: var(--background-600);
     }
 
     div#searchBar:has(input:focus) {
-        background-color: var(--background-800);
+        background-color: var(--background-700);
         box-shadow: 0px 0px 0px 1px var(--background-200);
     }
 

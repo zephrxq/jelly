@@ -2,6 +2,7 @@
 	import favicon from "$lib/assets/favicon.svg";
 	import "../app.css";
 	import { alerts, closeAlert } from "$lib/alerts.js";
+	import { fade } from "svelte/transition";
 
 	let { children } = $props();
 
@@ -10,7 +11,7 @@
 			return;
 		}
 
-		closeAlert(alertData);
+		closeAlert(alertData.id);
 		alertData.onInput(alertData.inputData);
 	}
 </script>
@@ -26,19 +27,20 @@
 
 <div class="alerts">
 	{#each $alerts as alertData}
-		{console.log(JSON.stringify(alertData))}
-		<div class="alert">
+		<div class="alert" id={alertData.type} transition:fade={{ duration: 100 }}>
 			<h2>{alertData.title}</h2>
 			<p>{alertData.text}</p>
 			{#if alertData.isInput}
 				<input bind:value={alertData.inputData} onkeydown={(event) => { if(event.key == "Enter") onInput(alertData); }}>
 			{/if}
-			<div class="buttons">
-				<button onclick={() => { closeAlert(alertData) }}>{alertData.isInput ? "Cancel" : "Close"}</button>
-				{#if alertData.isInput}
-					<button onclick={() => onInput(alertData)}>Continue</button>
-				{/if}
-			</div>
+			{#if alertData.type != "toast"}
+				<div class="buttons">
+					<button onclick={() => { closeAlert(alertData.id) }}>{alertData.isInput ? "Cancel" : "Close"}</button>
+					{#if alertData.isInput}
+						<button onclick={() => onInput(alertData)}>Continue</button>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	{/each}
 </div>
@@ -59,18 +61,23 @@
         background-color: var(--background-900);
     }
 
+	div.alert#toast {
+        top: 16px;
+        transform: translate(-50%, 0);
+	}
+
     div.alert h2 {
-        margin: 0 0 8px 0;
+        margin: 0 0 4px 0;
     }
 
     div.alert p {
-        margin: 0 0 16px 0;
+        margin: 0;
     }
 
     div.alert input {
         width: 100%;
         box-sizing: border-box;
-        margin: 8px 0 16px 0;
+        margin: 20px 0 20px 0;
     }
 
     div.alert .buttons {

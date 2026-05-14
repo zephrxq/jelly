@@ -1,6 +1,8 @@
 <script>
+    import { goto } from "$app/navigation";
     import { createAuthClient } from "better-auth/client";
     import { usernameClient } from "better-auth/client/plugins";
+    import { onMount } from "svelte";
 
     const authClient = createAuthClient({
         baseURL: "http://localhost:3000",
@@ -12,23 +14,14 @@
         }
     })
 
-    async function signup() {
-        const { data, error } = await authClient.signUp.email({
-            name: "Zeph",
-            password: "password1234",
-            username: "zeph",
-            email: "zephrequilme19@gmail.com"
-        })
-    }
+    onMount(async () => {
+        const session = await authClient.getSession();
 
-    async function login() {
-        const { data, error } = await authClient.signIn.username({
-            password: "password1234",
-            email: "zephrequilme19@gmail.com",
-            username: "zeph"
-        })
-    }
+        if(session.data) {
+            goto("/home");
+        }
+    })
 </script>
 
-<button onclick={login}>Log in</button>
-<button onclick={signup}>Sign up</button>
+<button onclick={() => goto("/login")}>Log in</button>
+<button onclick={() => goto("/signup")}>Sign up</button>
