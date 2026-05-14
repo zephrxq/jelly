@@ -25,19 +25,21 @@
 
         socket.on("state", (state) => {
             console.log(state)
-            room = {
-                ...room,
-                ...state
-            }
+            room = state;
             
-            if(state.status == "idle" || state.status == "paused") {
-                audioElem.pause();
-            } else if(state.status == "playing") {
+            if(state.status == "playing"  && audioElem.paused) {
                 audioElem.play();
+            } else if(state.status != "playing" && !audioElem.paused) {
+                audioElem.pause();
             }
 
-            if(state.position) {
-                audioElem.currentTime = state.position / 1000;
+            if(room.song.id) {
+                const serverTime = (Date.now() - room.startTime) / 1000;
+                const drift = Math.abs(audioElem.currentTime - serverTime);
+
+                if (drift > 0.5) {
+                    audioElem.currentTime = serverTime;
+                }
             }
 
             if(audioSrc != room.song.url) {
