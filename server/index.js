@@ -7,7 +7,7 @@ import { Server } from "socket.io";
 import { execFile } from "child_process";
 import { parse } from "tinyduration";
 import { toNodeHandler } from "better-auth/node";
-import { nanoid } from "nanoid";
+import { customAlphabet } from "nanoid";
 import { auth } from "./auth.js";
 import cors from "cors";
 
@@ -20,7 +20,7 @@ const io = new Server(httpServer, {
         credentials: true
     }
 })
-
+const nanoid = customAlphabet("1234567890abcdef", 8);
 const apiKey = process.env.API_KEY;
 
 const EMPTY_SONG = {
@@ -133,7 +133,7 @@ class RoomManager {
     }
     
     createRoom(owner) {
-        const id = nanoid(8);
+        const id = nanoid();
         const room = new Room(id, owner.data);
 
         this.rooms.set(id, room);
