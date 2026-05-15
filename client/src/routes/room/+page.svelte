@@ -23,33 +23,36 @@
         })
 
         socket.on("state", (state) => {
+            stateUpdate(state);
             console.log(state)
-            room = state;
-            
-            if(state.status == "playing"  && audioElem.paused) {
-                audioElem.play();
-            } else if(state.status != "playing" && !audioElem.paused) {
-                audioElem.pause();
-            }
-
-            if(room.song.id) {
-                const serverTime = (Date.now() - room.startTime) / 1000;
-                const drift = Math.abs(audioElem.currentTime - serverTime);
-
-                if (drift > 0.5) {
-                    audioElem.currentTime = serverTime;
-                }
-            }
-
-            if(audioSrc != room.song.url) {
-                audioSrc = room.song.url;
-                audioElem.onloadedmetadata = () => {
-                    audioElem.play();
-                }
-            }
-
         })
     })
+
+    function stateUpdate(state) {
+        room = state;
+        
+        if(state.status == "playing" && audioElem.paused) {
+            audioElem.play();
+        } else if(state.status != "playing" && !audioElem.paused) {
+            audioElem.pause();
+        }
+
+        if(room.song.id) {
+            const serverTime = (Date.now() - room.startTime) / 1000;
+            const drift = Math.abs(audioElem.currentTime - serverTime);
+
+            if (drift > 0.5) {
+                audioElem.currentTime = serverTime;
+            }
+        }
+
+        if(audioSrc != room.song.url) {
+            audioSrc = room.song.url;
+            audioElem.onloadedmetadata = () => {
+                audioElem.play();
+            }
+        }
+    }
 
     function decodeHtml(html) {
         const text = document.createElement("textarea");

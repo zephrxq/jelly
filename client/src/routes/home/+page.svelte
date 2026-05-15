@@ -13,7 +13,7 @@
             withCredentials: true
         })
 
-        socket.on("state", () => {
+        socket.on("state", (state) => {
             goto("/room");
         })
     })
