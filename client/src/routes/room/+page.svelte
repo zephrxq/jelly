@@ -7,6 +7,7 @@
     import SkipBack from "@lucide/svelte/icons/skip-back";
     import SkipForward from "@lucide/svelte/icons/skip-forward";
     import Search from "@lucide/svelte/icons/search";
+    import { PUBLIC_SERVER_URL } from "$env/static/public";
 
     let socket;
     let room = $state({});
@@ -17,7 +18,7 @@
     let playIcon = $state("play");
 
     onMount(() => {
-        socket = io("http://localhost:3000", {
+        socket = io(PUBLIC_SERVER_URL, {
             withCredentials: true
         })
 
@@ -121,8 +122,11 @@
         </div>
     </div>
     <div id="members" class="tab">
+        <h2>Members</h2>
         {#each room.members as member}
-            <p>{member}</p>
+            <div class="member">
+                <p>{member.username}</p>
+            </div>
         {/each}
     </div>
 </div>
@@ -281,5 +285,25 @@
 
     div#nowPlayingControls button:hover {
         background-color: var(--background-600);
+    }
+
+    div#members {
+        display: flex;
+        flex-direction: column;
+        width: 20%;
+    }
+
+    div#members > h2 {
+        margin: 0 0 16px 0;
+    }
+
+    div.member {
+        display: flex;
+        flex-direction: column;
+    }
+
+    div.member p {
+        margin: 0;
+        font-weight: 500;
     }
 </style>

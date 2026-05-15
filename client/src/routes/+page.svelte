@@ -3,9 +3,10 @@
     import { createAuthClient } from "better-auth/client";
     import { usernameClient } from "better-auth/client/plugins";
     import { onMount } from "svelte";
+    import { PUBLIC_SERVER_URL } from "$env/static/public";
     
     const authClient = createAuthClient({
-        baseURL: "http://localhost:3000",
+        baseURL: PUBLIC_SERVER_URL,
         plugins: [
             usernameClient()
         ],

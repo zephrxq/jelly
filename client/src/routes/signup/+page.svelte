@@ -4,6 +4,7 @@
     import { addAlert } from "$lib/alerts";
     import "../../login-signup.css";
     import { goto } from "$app/navigation";
+    import { PUBLIC_SERVER_URL } from "$env/static/public";
 
     let name = $state();
     let username = $state();
@@ -12,7 +13,7 @@
     let errorText = $state("");
 
     const authClient = createAuthClient({
-        baseURL: "http://localhost:3000",
+        baseURL: PUBLIC_SERVER_URL,
         plugins: [
             usernameClient()
         ],
