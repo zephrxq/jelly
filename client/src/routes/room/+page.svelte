@@ -17,9 +17,8 @@
     let audioElem = $state();
     let audioSrc = $state();
     let playIcon = $state("play");
-    let leftTab = $state();
-    let middleTab = $state();
-    let rightTab = $state();
+    let tabs = $state();
+    let tabSizes = $state({ left: 25, middle: 50, right: 25 });
     let resizing = null;
 
     onMount(() => {
@@ -100,30 +99,41 @@
     }
 
     function startResize(event) {
-        resizing = event.currentTarget;
+        resizing = {
+            id: event.currentTarget.id,
+            startX: event.clientX
+        }
     }
 
     function moveResize(event) {
         if(!resizing) return;
-        
-        const leftRect = leftTab.getBoundingClientRect();
-        const middleRect = middleTab.getBoundingClientRect();
-        const rightRect = rightTab.getBoundingClientRect();
+
+        const tabsRect = tabs.getBoundingClientRect();
+        const delta = event.clientX - resizing.startX;
+        const deltaPercent = (delta / (tabsRect.width - 16)) * 100; // subtract resizer widths
 
         if(resizing.id == "left") {
-            const newLeft = event.clientX;
-            const newMiddle = middleRect.width + (leftRect.width - newLeft);
-            
-            leftTab.style.width = newLeft + "px";
-            middleTab.style.width = newMiddle + "px";
+            const newLeft = tabSizes.left + deltaPercent;
+            const newMiddle = tabSizes.middle - deltaPercent;
+
+            if(newLeft > 20 && newMiddle > 20) {
+                tabSizes.left = newLeft;
+                tabSizes.middle = newMiddle;
+
+                resizing.startX = event.clientX;
+            }
         }
 
         if(resizing.id == "right") {
-            const newRight = rightRect.right - event.clientX;
-            const newMiddle = middleRect.width + (rightRect.width - newRight);
-            
-            rightTab.style.width = newRight + "px";
-            middleTab.style.width = newMiddle + "px";
+            const newRight = tabSizes.right - deltaPercent;
+            const newMiddle = tabSizes.middle + deltaPercent;
+
+            if(newRight > 20 && newMiddle > 20) {
+                tabSizes.right = newRight;
+                tabSizes.middle = newMiddle;
+
+                resizing.startX = event.clientX;
+            }
         }
     }
 
@@ -143,8 +153,8 @@
             <button onclick={leaveRoom}>Leave room</button>
         </div>
     </div>
-    <div id="tabs">
-        <div id="search" class="tab" bind:this={leftTab}>
+    <div id="tabs" bind:this={tabs}>
+        <div id="search" class="tab" style="flex-basis: {tabSizes.left}%">
             <div id="searchBar">
                 <input bind:value={searchQuery} onkeydown={(event) => { if(event.key == "Enter") search(); }}>
                 <button aria-label="Search" onclick={search}>
@@ -165,7 +175,7 @@
         <button aria-label="Resize left" class="tab resizer" id="left" onmousedown={(event) => startResize(event)}>
             <div></div>
         </button>
-        <div id="nowPlaying" bind:this={middleTab} class="tab">
+        <div id="nowPlaying" class="tab" style="flex-basis: {tabSizes.middle}%">
             <div id="nowPlayingInfo">
                 <div id="thumbnail">
                     <img alt="Thumbnail" src={room.song?.thumbnail} hidden={!room.song?.thumbnail}>
@@ -192,7 +202,7 @@
         <button aria-label="Resize right" class="tab resizer" id="right" onmousedown={(event) => startResize(event)}>
             <div></div>
         </button>
-        <div id="info" class="tab" bind:this={rightTab}>
+        <div id="info" class="tab" style="flex-basis: {tabSizes.right}%">
             <h2>Queue</h2>
             {#each room.queue as song}
                 <div class="song">
@@ -222,7 +232,7 @@
         background-color: var(--primary-900);
     }
 
-    div#topbar h2, p {
+    div#topbar h2 {
         margin: 0;
         height: fit-content;
     }
@@ -260,7 +270,7 @@
         flex-direction: column;
         padding: 16px 24px;
         min-height: 0;
-        min-width: 25%;
+        height: 100%;
     }
 
     button.resizer {
