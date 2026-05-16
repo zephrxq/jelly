@@ -11,7 +11,7 @@
     let email = $state();
     let password = $state();
     let errorText = $state("");
-    
+
     const authClient = createAuthClient({
         baseURL: PUBLIC_SERVER_URL,
         plugins: [

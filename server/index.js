@@ -233,7 +233,7 @@ io.on("connection", (socket) => {
 
     if(room) {
         socket.join(`room:${room.id}`);
-        io.to(`user:${user.id}`).emit("state", room.snapshot());
+        io.to(`room:${room.id}`).emit("state", room.snapshot());
     }
     
     socket.on("join-room", async (id, callback) => {
@@ -250,7 +250,7 @@ io.on("connection", (socket) => {
         user.joinRoom(room);
 
         io.in(`user:${user.id}`).socketsJoin(`room:${room.id}`);
-        io.to(`user:${user.id}`).emit("state", room.snapshot());
+        io.to(`room:${room.id}`).emit("state", room.snapshot());
 
         callback({
             status: "success"
@@ -261,7 +261,7 @@ io.on("connection", (socket) => {
         user = userManager.getUser(userId);
         room = roomManager.createRoom(user);
         io.in(`user:${user.id}`).socketsJoin(`room:${room.id}`);
-        io.to(`user:${user.id}`).emit("state", room.snapshot());
+        io.to(`room:${room.id}`).emit("state", room.snapshot());
 
         callback({
             status: "success"
@@ -274,7 +274,8 @@ io.on("connection", (socket) => {
         
         user.leaveRoom(room);
         io.in(`user:${user.id}`).socketsLeave(`room:${room.id}`);
-        io.to(`user:${user.id}`).emit("state", {});
+        io.to(`room:${room.id}`).emit("state", room.snapshot());
+        io.to(`user:${room.id}`).emit("state", {});
     })
 
     socket.on("add-song", (songId, callback) => {
