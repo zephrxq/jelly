@@ -300,13 +300,14 @@
         width: 100%;
         display: flex;
         flex-direction: row;
-        background-color: var(--background-700);
+        background-color: var(--primary-700);
         border-radius: 999px;
+        transition: 0.1s;
     }
 
     div#searchBar button {
         border-radius: 0 999px 999px 0;
-        background-color: inherit;
+        background-color: transparent;
         padding: 8px 12px;
     }
 
@@ -318,19 +319,16 @@
         padding: 8px 0 8px 16px;
         background-color: inherit;
         box-shadow: none;
+        background-color: transparent;
     }
 
-    div#searchBar input:hover {
-        box-shadow: none;
-    }
-
-    div#searchBar:has(input:hover) {
-        background-color: var(--background-600);
+    div#searchBar:hover {
+        background-color: var(--primary-600);
     }
 
     div#searchBar:has(input:focus) {
-        background-color: var(--background-700);
-        box-shadow: 0px 0px 0px 1px var(--background-200);
+        background-color: var(--primary-700);
+        box-shadow: 0px 0px 0px 1px var(--primary-200);
     }
 
     div#searchResults {
