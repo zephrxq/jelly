@@ -8,7 +8,7 @@
     import SkipForward from "@lucide/svelte/icons/skip-forward";
     import Search from "@lucide/svelte/icons/search";
     import { PUBLIC_SERVER_URL } from "$env/static/public";
-  import { goto } from "$app/navigation";
+    import { goto } from "$app/navigation";
 
     let socket;
     let room = $state({});
@@ -17,6 +17,10 @@
     let audioElem = $state();
     let audioSrc = $state();
     let playIcon = $state("play");
+    let leftTab = $state();
+    let middleTab = $state();
+    let rightTab = $state();
+    let resizing = null;
 
     onMount(() => {
         socket = io(PUBLIC_SERVER_URL, {
@@ -25,8 +29,10 @@
 
         socket.on("state", (state) => {
             stateUpdate(state);
-            console.log(state)
         })
+
+        document.addEventListener("mousemove", moveResize);
+        document.addEventListener("mouseup", endResize);
     })
 
     function stateUpdate(state) {
@@ -92,6 +98,38 @@
             console.log(error);
         }
     }
+
+    function startResize(event) {
+        resizing = event.currentTarget;
+    }
+
+    function moveResize(event) {
+        if(!resizing) return;
+        
+        const leftRect = leftTab.getBoundingClientRect();
+        const middleRect = middleTab.getBoundingClientRect();
+        const rightRect = rightTab.getBoundingClientRect();
+
+        if(resizing.id == "left") {
+            const newLeft = event.clientX;
+            const newMiddle = middleRect.width + (leftRect.width - newLeft);
+            
+            leftTab.style.width = newLeft + "px";
+            middleTab.style.width = newMiddle + "px";
+        }
+
+        if(resizing.id == "right") {
+            const newRight = rightRect.right - event.clientX;
+            const newMiddle = middleRect.width + (rightRect.width - newRight);
+            
+            rightTab.style.width = newRight + "px";
+            middleTab.style.width = newMiddle + "px";
+        }
+    }
+
+    function endResize(event) {
+        resizing = null;
+    }
 </script>
 
 <div id="room">
@@ -106,7 +144,7 @@
         </div>
     </div>
     <div id="tabs">
-        <div id="search" class="tab">
+        <div id="search" class="tab" bind:this={leftTab}>
             <div id="searchBar">
                 <input bind:value={searchQuery} onkeydown={(event) => { if(event.key == "Enter") search(); }}>
                 <button aria-label="Search" onclick={search}>
@@ -124,7 +162,10 @@
                 </div>
             </div>
         </div>
-        <div id="nowPlaying" class="tab">
+        <button aria-label="Resize left" class="tab resizer" id="left" onmousedown={(event) => startResize(event)}>
+            <div></div>
+        </button>
+        <div id="nowPlaying" bind:this={middleTab} class="tab">
             <div id="nowPlayingInfo">
                 <div id="thumbnail">
                     <img alt="Thumbnail" src={room.song?.thumbnail} hidden={!room.song?.thumbnail}>
@@ -148,7 +189,10 @@
                 </button>
             </div>
         </div>
-        <div id="info" class="tab">
+        <button aria-label="Resize right" class="tab resizer" id="right" onmousedown={(event) => startResize(event)}>
+            <div></div>
+        </button>
+        <div id="info" class="tab" bind:this={rightTab}>
             <h2>Queue</h2>
             {#each room.queue as song}
                 <div class="song">
@@ -214,8 +258,27 @@
     div.tab {
         display: flex;
         flex-direction: column;
-        padding: 16px;
+        padding: 16px 24px;
         min-height: 0;
+        min-width: 25%;
+    }
+
+    button.resizer {
+        padding: 4px;
+        height: 100%;
+        cursor: col-resize;
+        border-radius: 999px;
+        background-color: transparent;
+    }
+
+    button.resizer div {
+        height: 100%;
+        width: 2px;
+        background-color: var(--primary-800);
+    }
+
+    button.resizer:hover > div{
+        background-color: var(--primary-700);
     }
 
     div#search {
@@ -361,9 +424,8 @@
     }
 
     div#info {
-        display: flex;
-        flex-direction: column;
         width: 25%;
+        flex-direction: column;
     }
 
     div#info > h2 {
@@ -383,7 +445,7 @@
     div.song-info {
         display: flex;
         flex-direction: column;
-        margin-left: 8px;
+        margin-left: 12px;
         min-width: 0;
         white-space: nowrap;
     }
