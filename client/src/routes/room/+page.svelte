@@ -40,7 +40,7 @@
         if(audioSrc != room.song.url) {
             audioSrc = room.song.url;
         }
-        
+
         if(state.status == "playing" && audioElem.paused) {
             audioElem.play();
         } else if(state.status != "playing" && !audioElem.paused) {
@@ -80,6 +80,10 @@
 
     function skipNext() {
         socket.emit("skip-next");
+    }
+
+    function skipBack() {
+        socket.emit("skip-back");
     }
 
     function leaveRoom() {
@@ -181,7 +185,7 @@
                 <p>{room.song?.artist}</p>
             </div>
             <div id="nowPlayingControls">
-                <button id="back" aria-label="Back">
+                <button id="back" aria-label="Back" onclick={skipBack}>
                     <SkipBack size={28}></SkipBack>
                 </button>
                 <button id="play" aria-label="Play" onclick={togglePause}>

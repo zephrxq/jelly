@@ -36,6 +36,7 @@ class Room {
     constructor(id, owner) {
         this.owner = owner;
         this.queue = [];
+        this.history = [];
         this.members = [];
         this.song = EMPTY_SONG;
         this.status = "idle";
@@ -64,6 +65,7 @@ class Room {
 
     checkIfFinished(){
         if(this.status === "playing" && this.isSongFinished()) {
+            this.endSong();
             this.playNext();
             return true;
         }
@@ -79,14 +81,26 @@ class Room {
         }
     }
     
+    playLast() {
+        const song = this.history.pop();
+
+        if(!song) {
+            this.endSong();
+            return;
+        }
+
+        this.queue.push(song);
+        this.queue.push(this.song);
+        this.playNext();
+    }
+
     playNext() {
+        this.history.push(this.song);
+
         const song = this.queue.shift();
         
         if(!song) {
-            this.song = EMPTY_SONG;
-            this.status = "idle";
-            this.startTime = null;
-            this.pauseTime = null;
+            this.endSong();
             return;
         }
 
@@ -99,11 +113,16 @@ class Room {
     endSong() {
         this.song = EMPTY_SONG;
         this.status = "idle";
+        this.startTime = null;
+        this.pauseTime = null;
     }
     
     skipNext() {
-        this.endSong();
         this.playNext();
+    }
+
+    skipBack() {
+        this.playLast();
     }
 
     togglePause() {
@@ -337,6 +356,14 @@ io.on("connection", (socket) => {
         room = roomManager.getRoom(user.room.id);
 
         room.skipNext();
+        io.to(`room:${room.id}`).emit("state", room.snapshot());
+    })
+
+    socket.on("skip-back", () => {
+        user = userManager.getUser(userId);
+        room = roomManager.getRoom(user.room.id);
+
+        room.skipBack();
         io.to(`room:${room.id}`).emit("state", room.snapshot());
     })
 
