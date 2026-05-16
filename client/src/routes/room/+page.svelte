@@ -34,8 +34,12 @@
         document.addEventListener("mouseup", endResize);
     })
 
-    function stateUpdate(state) {
+    async function stateUpdate(state) {
         room = state;
+        
+        if(audioSrc != room.song.url) {
+            audioSrc = room.song.url;
+        }
         
         if(state.status == "playing" && audioElem.paused) {
             audioElem.play();
@@ -49,13 +53,6 @@
 
             if (drift > 0.5) {
                 audioElem.currentTime = serverTime;
-            }
-        }
-
-        if(audioSrc != room.song.url) {
-            audioSrc = room.song.url;
-            audioElem.onloadedmetadata = () => {
-                audioElem.play();
             }
         }
     }
