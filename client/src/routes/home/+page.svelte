@@ -14,7 +14,9 @@
         })
 
         socket.on("state", (state) => {
-            goto("/room");
+            if(Object.keys(state).length > 0) {
+                goto("/room");
+            }
         })
     })
 

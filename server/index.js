@@ -125,6 +125,13 @@ class Room {
             this.members.push(user);
         }
     }
+
+    leaveRoom(user) {
+        const memberIndex = this.members.findIndex(member => member.id === user.id)
+        if(memberIndex != -1) {
+            this.members.splice(memberIndex, 1);
+        }
+    }
 }
 
 class RoomManager {
@@ -155,11 +162,17 @@ class User {
     constructor(data) {
         this.room = null;
         this.data = data;
+        this.id = data.id;
     }
 
     joinRoom(room) {
         this.room = room;
         room.joinRoom(this.data);
+    }
+
+    leaveRoom(room) {
+        this.room = null;
+        room.leaveRoom(this.data);
     }
 }
 
@@ -210,13 +223,12 @@ async function authMiddleware(socket, next) {
 io.use(authMiddleware);
 
 io.on("connection", (socket) => {
-    const userData = socket.data.user;
+    const userId = socket.data.user.id;
 
-    if(!userData) return;
+    if(!userId) return;
 
-    const user = userManager.getUser(userData.id);
+    let user = userManager.getUser(userId);
     let room = roomManager.getRoom(user.room?.id);
-
     socket.join(`user:${user.id}`);
 
     if(room) {
@@ -233,6 +245,7 @@ io.on("connection", (socket) => {
             return;
         }
 
+        user = userManager.getUser(userId);
         room = roomManager.getRoom(id);
         user.joinRoom(room);
 
@@ -245,8 +258,8 @@ io.on("connection", (socket) => {
     })
 
     socket.on("create-room", async (callback) => {
+        user = userManager.getUser(userId);
         room = roomManager.createRoom(user);
-
         io.in(`user:${user.id}`).socketsJoin(`room:${room.id}`);
         io.to(`user:${user.id}`).emit("state", room.snapshot());
 
@@ -255,7 +268,19 @@ io.on("connection", (socket) => {
         })
     })
 
+    socket.on("leave-room", () => {
+        user = userManager.getUser(userId);
+        room = roomManager.getRoom(user.room.id);
+        
+        user.leaveRoom(room);
+        io.in(`user:${user.id}`).socketsLeave(`room:${room.id}`);
+        io.to(`user:${user.id}`).emit("state", {});
+    })
+
     socket.on("add-song", (songId, callback) => {
+        user = userManager.getUser(userId);
+        room = roomManager.getRoom(user.room.id);
+
         const params = new URLSearchParams({
             part: "snippet,contentDetails",
             id: songId,
@@ -299,16 +324,25 @@ io.on("connection", (socket) => {
     })
 
     socket.on("toggle-pause", () => {
+        user = userManager.getUser(userId);
+        room = roomManager.getRoom(user.room.id);
+
         room.togglePause();
         io.to(`room:${room.id}`).emit("state", room.snapshot());
     })
 
     socket.on("skip-next", () => {
+        user = userManager.getUser(userId);
+        room = roomManager.getRoom(user.room.id);
+
         room.skipNext();
         io.to(`room:${room.id}`).emit("state", room.snapshot());
     })
 
     socket.on("search", (query, callback) => {
+        user = userManager.getUser(userId);
+        room = roomManager.getRoom(user.room.id);
+
         const params = new URLSearchParams({
             part: "snippet",
             q: query,

@@ -8,6 +8,7 @@
     import SkipForward from "@lucide/svelte/icons/skip-forward";
     import Search from "@lucide/svelte/icons/search";
     import { PUBLIC_SERVER_URL } from "$env/static/public";
+  import { goto } from "$app/navigation";
 
     let socket;
     let room = $state({});
@@ -78,74 +79,139 @@
     function skipNext() {
         socket.emit("skip-next");
     }
+
+    function leaveRoom() {
+        socket.emit("leave-room");
+        goto("/home");
+    }
+    
+    function copyId() {
+        try {
+            navigator.clipboard.writeText(room.id);
+        } catch(error) {
+            console.log(error);
+        }
+    }
 </script>
 
 <div id="room">
     <audio bind:this={audioElem} src={audioSrc}></audio>
-    <div id="search" class="tab">
-        <div id="searchBar">
-            <input bind:value={searchQuery} onkeydown={(event) => { if(event.key == "Enter") search(); }}>
-            <button aria-label="Search" onclick={search}>
-                <Search></Search>
-            </button>
+    <div id="topbar">
+        <div id="left">
+            <h2>{`${room.owner?.name}'s room`}</h2>
+            <button title="Copy ID" id="copy" onclick={copyId}>{`#${room.id}`}</button>
         </div>
-        <div id="searchResults">
-            <div id="searchResultsScroll">
-                {#each searchResults as searchResult, index}
-                    <button class="searchResult" onclick={() => addSong(searchResult.id.videoId)}>
-                        <h3>{decodeHtml(searchResult.snippet.title)}</h3>
-                        <p>{decodeHtml(searchResult.snippet.channelTitle)}</p>
-                    </button>
-                {/each}
-            </div>
+        <div id="right">
+            <button onclick={leaveRoom}>Leave room</button>
         </div>
     </div>
-    <div id="nowPlaying" class="tab">
-        <div id="nowPlayingInfo">
-            <div id="thumbnail">
-                <img alt="Thumbnail" src={room.song?.thumbnail} hidden={!room.song?.thumbnail}>
+    <div id="tabs">
+        <div id="search" class="tab">
+            <div id="searchBar">
+                <input bind:value={searchQuery} onkeydown={(event) => { if(event.key == "Enter") search(); }}>
+                <button aria-label="Search" onclick={search}>
+                    <Search></Search>
+                </button>
             </div>
-            <h2>{room.song?.title}</h2>
-            <p>{room.song?.artist}</p>
-        </div>
-        <div id="nowPlayingControls">
-            <button id="back" aria-label="Back">
-                <SkipBack size={28}></SkipBack>
-            </button>
-            <button id="play" aria-label="Play" onclick={togglePause}>
-                {#if room.status == "paused" || room.status == "idle"}
-                    <Play size={28}></Play>
-                {:else}
-                    <Pause size={28}></Pause>
-                {/if}
-            </button>
-            <button id="next" aria-label="Next" onclick={skipNext}>
-                <SkipForward size={28}></SkipForward>
-            </button>
-        </div>
-    </div>
-    <div id="members" class="tab">
-        <h2>Members</h2>
-        {#each room.members as member}
-            <div class="member">
-                <p>{member.username}</p>
+            <div id="searchResults">
+                <div id="searchResultsScroll">
+                    {#each searchResults as searchResult, index}
+                        <button class="searchResult" onclick={() => addSong(searchResult.id.videoId)}>
+                            <h3>{decodeHtml(searchResult.snippet.title)}</h3>
+                            <p>{decodeHtml(searchResult.snippet.channelTitle)}</p>
+                        </button>
+                    {/each}
+                </div>
             </div>
-        {/each}
+        </div>
+        <div id="nowPlaying" class="tab">
+            <div id="nowPlayingInfo">
+                <div id="thumbnail">
+                    <img alt="Thumbnail" src={room.song?.thumbnail} hidden={!room.song?.thumbnail}>
+                </div>
+                <h2>{room.song?.title}</h2>
+                <p>{room.song?.artist}</p>
+            </div>
+            <div id="nowPlayingControls">
+                <button id="back" aria-label="Back">
+                    <SkipBack size={28}></SkipBack>
+                </button>
+                <button id="play" aria-label="Play" onclick={togglePause}>
+                    {#if room.status == "paused" || room.status == "idle"}
+                        <Play size={28}></Play>
+                    {:else}
+                        <Pause size={28}></Pause>
+                    {/if}
+                </button>
+                <button id="next" aria-label="Next" onclick={skipNext}>
+                    <SkipForward size={28}></SkipForward>
+                </button>
+            </div>
+        </div>
+        <div id="members" class="tab">
+            <h2>Members</h2>
+            {#each room.members as member}
+                <div class="member">
+                    <p>{member.username}</p>
+                </div>
+            {/each}
+        </div>
     </div>
 </div>
 
 <style>
     div#room {
         display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    div#topbar {
+        height: fit-content;
+        padding: 16px 24px;
+        display: flex;
         flex-direction: row;
+        background-color: var(--primary-900);
+    }
+
+    div#topbar h2, p {
+        margin: 0;
+        height: fit-content;
+    }
+
+    div#topbar #copy {
+        padding: 0;
+        background-color: transparent;
+        color: var(--text-300);
+        margin-left: 8px;
+    }
+    
+    div#topbar #copy:hover {
+        text-decoration: underline;
+    }
+
+    div#topbar div {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    div#topbar div#right {
+        margin-left: auto;
+    }
+
+    div#tabs {
+        display: flex;
+        flex-direction: row;
+        flex: 1;
+        min-height: 0;
     }
 
     div.tab {
         display: flex;
         flex-direction: column;
         padding: 16px;
-        height: 100vh;
-        box-sizing: border-box;
+        min-height: 0;
     }
 
     div#search {
