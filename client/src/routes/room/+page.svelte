@@ -148,11 +148,15 @@
                 </button>
             </div>
         </div>
-        <div id="members" class="tab">
-            <h2>Members</h2>
-            {#each room.members as member}
-                <div class="member">
-                    <p>{member.username}</p>
+        <div id="info" class="tab">
+            <h2>Queue</h2>
+            {#each room.queue as song}
+                <div class="song">
+                    <img alt="Thumbnail" src={song.thumbnail}>
+                    <div class="song-info">
+                        <h3 id="title">{song.title}</h3>
+                        <p id="artist">{song.artist}</p>
+                    </div>
                 </div>
             {/each}
         </div>
@@ -215,7 +219,7 @@
     }
 
     div#search {
-        width: 30%;
+        width: 25%;
     }
 
     div#searchBar {
@@ -356,23 +360,42 @@
         background-color: var(--background-600);
     }
 
-    div#members {
+    div#info {
         display: flex;
         flex-direction: column;
-        width: 20%;
+        width: 25%;
     }
 
-    div#members > h2 {
+    div#info > h2 {
         margin: 0 0 16px 0;
     }
 
-    div.member {
+    div.song {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        margin-bottom: 16px;
     }
 
-    div.member p {
+    div.song img {
+        height: 64px;
+    }
+
+    div.song-info {
+        display: flex;
+        flex-direction: column;
+        margin-left: 8px;
+        min-width: 0;
+        white-space: nowrap;
+    }
+
+    div.song-info #title {
+        font-weight: 700;
         margin: 0;
-        font-weight: 500;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
+    div.song-info #artist {
+        color: var(--text-300);
     }
 </style>
