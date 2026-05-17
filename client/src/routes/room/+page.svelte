@@ -439,6 +439,7 @@
     div#info {
         width: 25%;
         flex-direction: column;
+        overflow-y: auto;
     }
 
     div#info > h2 {
@@ -461,6 +462,7 @@
         margin-left: 12px;
         min-width: 0;
         white-space: nowrap;
+        text-overflow: ellipsis;
     }
 
     div.song-info #title {
@@ -472,5 +474,7 @@
 
     div.song-info #artist {
         color: var(--text-300);
+        text-overflow: ellipsis;
+        overflow: hidden;
     }
 </style>
