@@ -49,6 +49,7 @@ class Room {
         return {
             owner: this.owner,
             queue: this.queue,
+            history: this.history,
             members: this.members,
             song: this.song,
             status: this.status,
@@ -82,28 +83,33 @@ class Room {
     }
     
     playLast() {
-        const song = this.history.pop();
-
-        if(!song) {
-            this.endSong();
+        if(this.history.length == 0) {
             return;
         }
 
-        this.queue.push(song);
-        this.queue.push(this.song);
-        this.playNext();
+        if(this.song.id) {
+            this.queue.push(this.song);
+        }
+
+        const song = this.history.pop();
+
+        this.song = song;
+        this.status = "playing";
+        this.startTime = Date.now();
+        this.pauseTime = null;
     }
 
     playNext() {
-        this.history.push(this.song);
-
-        const song = this.queue.shift();
-        
-        if(!song) {
-            this.endSong();
+        if(this.queue.length == 0) {
             return;
         }
 
+        if(this.song.id) {
+            this.history.push(this.song);
+        }
+
+        const song = this.queue.shift();
+        
         this.song = song;
         this.status = "playing";
         this.startTime = Date.now();
