@@ -10,6 +10,7 @@ import { toNodeHandler } from "better-auth/node";
 import { customAlphabet } from "nanoid";
 import { auth } from "./auth.js";
 import cors from "cors";
+import { existsSync } from "fs";
 
 const app = express();
 const httpServer = createServer(app);
@@ -339,9 +340,9 @@ io.on("connection", (socket) => {
                         song.snippet.thumbnails.default?.url
                 }
 
-                getYoutubeLink(song.id)
-                    .then((songUrl) => {
-                        songData.url = songUrl;
+                downloadYoutubeLink(song.id)
+                    .then(() => {
+                        songData.url = `${process.env.SERVER_URL}/songs/${song.id}`;
 
                         room.addSong(songData);
                         io.to(`room:${room.id}`).emit("state", room.snapshot());
@@ -395,16 +396,21 @@ io.on("connection", (socket) => {
     })
 })
 
-function getYoutubeLink(songId) {
-    let execCmd = ["./server/yt-dlp", "-f", "bestaudio", "-g", "-q", "--no-warnings", `https://youtube.com/watch?v=${songId}`];
-
-
+function downloadYoutubeLink(songId) {
     return new Promise((resolve, reject) => {
+        const filename = `./songs/${songId}`;
+
+        if(existsSync(filename)) {
+            return resolve();
+        }
+        
+        let execCmd = ["./server/yt-dlp", "-f", "bestaudio", "-o", filename, "-q", "--no-warnings", `https://youtube.com/watch?v=${songId}`];
+
         execFile("python", execCmd, (error, stdout, stderr) => {
             if(error) {
                 reject();
             } else {
-                resolve(stdout.trim());
+                resolve();
             }
         })
     })
@@ -425,5 +431,6 @@ app.use(cors({
     credentials: true
 }))
 app.all("/api/auth/{*any}", toNodeHandler(auth.handler));
+app.use("/songs", express.static("songs"));
 app.use(express.json());
 httpServer.listen(3000);
