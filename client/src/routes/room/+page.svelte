@@ -308,6 +308,7 @@
         background-color: var(--primary-700);
         border-radius: 999px;
         transition: 0.1s;
+        border: 1px solid transparent;
     }
 
     div#searchBar button {
@@ -323,8 +324,8 @@
         width: 0%;
         padding: 8px 0 8px 16px;
         background-color: inherit;
-        border: 1px solid transparent;
         background-color: transparent;
+        border: none;
     }
 
     div#searchBar:hover {
