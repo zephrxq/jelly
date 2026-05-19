@@ -323,7 +323,7 @@
         width: 0%;
         padding: 8px 0 8px 16px;
         background-color: inherit;
-        box-shadow: none;
+        border: 1px solid transparent;
         background-color: transparent;
     }
 
@@ -333,7 +333,7 @@
 
     div#searchBar:has(input:focus) {
         background-color: var(--primary-700);
-        box-shadow: 0px 0px 0px 1px var(--primary-200);
+        border-color: var(--primary-200);
     }
 
     div#searchResults {
@@ -343,11 +343,11 @@
         overflow-y: hidden;
         border-radius: 8px;
         transition: 0.1s;
-        box-shadow: 0px 0px 0px 0.25px var(--background-200);
+        border: 1px solid var(--background-600);
     }
     
     div#searchResults:has(div#searchResultsScroll:empty) {
-        box-shadow: none;
+        border-color: transparent;
     }
     
     div#searchResultsScroll {
