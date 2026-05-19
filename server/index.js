@@ -404,7 +404,7 @@ function downloadYoutubeLink(songId) {
             return resolve();
         }
         
-        let execCmd = ["./server/yt-dlp", "-f", "bestaudio", "-o", filename, "-q", "--no-warnings", `https://youtube.com/watch?v=${songId}`];
+        let execCmd = ["./server/yt-dlp", "-f", "bestaudio", "-o", filename, "-q", "--no-warnings", `https://youtube.com/watch?v=${songId}`, "--cookies", "./server/cookies.txt"];
 
         execFile("python", execCmd, (error, stdout, stderr) => {
             if(error) {
