@@ -61,6 +61,17 @@
         }
     }
 
+    function waitForAudio() {
+        return new Promise((resolve) => {
+            if(audioElem.readyState) {
+                resolve();
+                return;
+            }
+
+            audioElem.addEventListener("loadedmetadata", resolve, { once: true });
+        })
+    }
+
     function decodeHtml(html) {
         const text = document.createElement("textarea");
         text.innerHTML = html;
@@ -344,7 +355,7 @@
         overflow-y: hidden;
         border-radius: 8px;
         transition: 0.1s;
-        border: 1px solid var(--background-600);
+        border: 1px solid var(--background-800);
     }
     
     div#searchResults:has(div#searchResultsScroll:empty) {
@@ -357,6 +368,7 @@
         width: 100%;
         overflow-y: auto;
         transition: 0.1s;
+        padding: 8px;
     }
 
     button.searchResult {
@@ -364,16 +376,17 @@
         flex-direction: column;
         margin-bottom: 32px;
         align-items: start;
-        background-color: var(--background);
+        background-color: transparent;
         margin: 0;
         border-radius: 0;
         width: 100%;
         box-sizing: border-box;
-        padding: 16px 24px;
+        padding: 16px;
+        border-radius: 8px;
     }
 
     button.searchResult:hover {
-        background-color: var(--background-800);
+        background-color: var(--primary-800);
     }
 
     button.searchResult h3 {
@@ -398,7 +411,7 @@
         height: fit-content;
         width: 100%;
         aspect-ratio: 16 / 9;
-        background-color: var(--background-800);
+        background-color: var(--primary-800);
     }
 
     div#nowPlayingInfo img {
@@ -434,7 +447,7 @@
     }
 
     div#nowPlayingControls button:hover {
-        background-color: var(--background-600);
+        background-color: var(--primary-600);
     }
 
     div#info {
