@@ -35,11 +35,13 @@
     })
 
     async function stateUpdate(state) {
+        await tick();
+
         room = state;
         
         if(audioSrc != room.song.url) {
             audioSrc = room.song.url;
-
+            
             await waitForAudio();
         }
 
