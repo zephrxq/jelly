@@ -40,17 +40,15 @@
         if(audioSrc != room.song.url) {
             audioSrc = room.song.url;
 
-            audioElem.onloadedmetadata = () => {
-                audioElem.play();
-            }
-        } else {
-            if(state.status == "playing" && audioElem.paused) {
-                audioElem.play();
-            } else if(state.status != "playing" && !audioElem.paused) {
-                audioElem.pause();
-            }
+            await waitForAudio();
         }
 
+        if(room.status == "playing" && audioElem.paused) {
+            audioElem.play();
+        } else if(room.status != "playing" && !audioElem.paused) {
+            audioElem.pause();
+        }
+        
         if(room.song.id) {
             const serverTime = (Date.now() - room.startTime) / 1000;
             const drift = Math.abs(audioElem.currentTime - serverTime);
