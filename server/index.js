@@ -4,7 +4,7 @@ dotenv.config();
 
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { execFile } from "child_process";
+import { execFile, spawn } from "child_process";
 import { parse } from "tinyduration";
 import { toNodeHandler } from "better-auth/node";
 import { customAlphabet } from "nanoid";
@@ -40,6 +40,7 @@ class Room {
         this.history = [];
         this.members = [];
         this.song = EMPTY_SONG;
+        this.songUrl = null;
         this.status = "idle";
         this.startTime = null;
         this.pauseTime = null;
@@ -122,6 +123,7 @@ class Room {
         this.status = "idle";
         this.startTime = null;
         this.pauseTime = null;
+        this.setSongUrl(null);
     }
     
     skipNext() {
@@ -157,6 +159,18 @@ class Room {
         if(memberIndex != -1) {
             this.members.splice(memberIndex, 1);
         }
+    }
+
+    setSongUrl(url) {
+        if(!this.song.id) {
+            return;
+        }
+
+        this.songUrl = url;
+    }
+
+    getSongUrl() {
+        return this.songUrl;
     }
 }
 
@@ -340,13 +354,13 @@ io.on("connection", (socket) => {
                         song.snippet.thumbnails.default?.url
                 }
 
-                downloadYoutubeLink(song.id)
-                    .then(() => {
-                        songData.url = `${process.env.SERVER_URL}/songs/${song.id}`;
-
-                        room.addSong(songData);
-                        io.to(`room:${room.id}`).emit("state", room.snapshot());
-                    })
+                room.addSong(songData);
+                io.to(`room:${room.id}`).emit("state", room.snapshot());
+                getYoutubeLink(songId)
+                .then((url) => {
+                    room.setSongUrl(url);
+                    io.to(`room:${room.id}`).emit("song-ready");
+                })
             })
     })
 
@@ -396,21 +410,15 @@ io.on("connection", (socket) => {
     })
 })
 
-function downloadYoutubeLink(songId) {
+function getYoutubeLink(songId) {
     return new Promise((resolve, reject) => {
-        const filename = `./songs/${songId}`;
-
-        if(existsSync(filename)) {
-            return resolve();
-        }
-        
-        let execCmd = ["./server/yt-dlp", "-f", "bestaudio", "-o", filename, "-q", "--no-warnings", `https://youtube.com/watch?v=${songId}`, "--cookies", "./server/cookies.txt"];
+        let execCmd = ["./server/yt-dlp", "-f", "bestaudio", "-g", "-q", "--no-warnings", `https://youtube.com/watch?v=${songId}`, "--cookies", "./server/cookies.txt"];
 
         execFile("python", execCmd, (error, stdout, stderr) => {
             if(error) {
-                reject();
+                reject(error);
             } else {
-                resolve();
+                resolve(stdout);
             }
         })
     })
@@ -431,6 +439,20 @@ app.use(cors({
     credentials: true
 }))
 app.all("/api/auth/{*any}", toNodeHandler(auth.handler));
-app.use("/songs", express.static("songs"));
+
+app.get("/stream/:id", (req, res) => {
+    res.setHeader("Content-Type", "audio/mpeg");
+
+    const room = roomManager.getRoom(req.params.id);
+    const ffmpegCmd = ["-ss", (Date.now() - room.snapshot().startTime) / 1000, "-i", room.getSongUrl(), "-vn", "-c:a", "libmp3lame", "-b:a", "128k", "-f", "mp3", "pipe:1"];
+    const ffmpeg = spawn("ffmpeg", ffmpegCmd);
+
+    ffmpeg.stdout.pipe(res);
+
+    req.on("close", () => {
+        ffmpeg.kill("SIGKILL");
+    })
+})
+
 app.use(express.json());
 httpServer.listen(3000);

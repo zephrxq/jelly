@@ -30,8 +30,19 @@
             stateUpdate(state);
         })
 
+        socket.on("song-ready", async () => {
+            await playAudio();
+        })
+
         document.addEventListener("mousemove", moveResize);
         document.addEventListener("mouseup", endResize);
+        
+        if("mediaSession" in navigator) {
+            navigator.mediaSession.setActionHandler("play", togglePause);
+            navigator.mediaSession.setActionHandler("pause", togglePause);
+            navigator.mediaSession.setActionHandler("previoustrack", skipBack);
+            navigator.mediaSession.setActionHandler("nexttrack", skipNext);
+        }
     })
 
     async function stateUpdate(state) {
@@ -39,31 +50,24 @@
 
         room = state;
         
-        if(audioSrc != room.song.url) {
-            audioSrc = room.song.url;
-            
-            await waitForAudio();
-        }
-
-        if(room.status == "playing" && audioElem.paused) {
-            audioElem.play();
-        } else if(room.status != "playing" && !audioElem.paused) {
-            audioElem.pause();
-        }
+        audioSrc = `${PUBLIC_SERVER_URL}/stream/${room.id}`;
         
-        if(room.song.id) {
-            const serverTime = (Date.now() - room.startTime) / 1000;
-            const drift = Math.abs(audioElem.currentTime - serverTime);
-
-            if(drift > 0.5) {
-                audioElem.currentTime = serverTime;
-            }
+        if(room.status == "playing" && audioElem.paused) {
+            await playAudio();
+        } else if(room.status != "playing" && !audioElem.paused) {
+            await audioElem.pause();
         }
+    }
+
+    async function playAudio() {
+        audioElem.load();
+        await waitForAudio();
+        audioElem.play();
     }
 
     function waitForAudio() {
         return new Promise((resolve) => {
-            if(audioElem.readyState) {
+            if(audioElem.readyState >= 2) {
                 resolve();
                 return;
             }
