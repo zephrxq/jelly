@@ -39,7 +39,7 @@
                     title: "Failed to join room",
                     text: joinResult.reason
                 })
-            } else if(createResult.status == "success") {
+            } else if(joinResult.status == "success") {
                 goto("/room");
             }
         })
@@ -47,7 +47,6 @@
     
     function createRoom() {
         socket.emit("create-room", (createResult) => {
-            console.log(createResult)
             if(createResult.status == "fail") {
                 return addAlert({
                     title: "Failed to create room",
