@@ -10,7 +10,8 @@ import { toNodeHandler } from "better-auth/node";
 import { customAlphabet } from "nanoid";
 import { auth } from "./auth.js";
 import cors from "cors";
-import { existsSync } from "fs";
+import { existsSync, readdirSync, mkdirSync, unlinkSync } from "fs";
+import { PassThrough } from "stream";
 
 const app = express();
 const httpServer = createServer(app);
@@ -30,21 +31,24 @@ const EMPTY_SONG = {
     artist: "Unknown artist",
     thumbnail: "",
     paused: true,
-    duration: 0
+    duration: 0,
+    url: null
 }
 
 class Room {
-    constructor(id, owner) {
+    constructor(id, owner, io) {
         this.owner = owner;
         this.queue = [];
         this.history = [];
         this.members = [];
         this.song = EMPTY_SONG;
-        this.songUrl = null;
+        this.songReady = false;
+        this.ffmpeg = null;
         this.status = "idle";
         this.startTime = null;
         this.pauseTime = null;
         this.id = id;
+        this.io = io;
     }
 
     snapshot() {
@@ -54,6 +58,7 @@ class Room {
             history: this.history,
             members: this.members,
             song: this.song,
+            songReady: this.songReady,
             status: this.status,
             startTime: this.startTime,
             id: this.id
@@ -95,10 +100,7 @@ class Room {
 
         const song = this.history.pop();
 
-        this.song = song;
-        this.status = "playing";
-        this.startTime = Date.now();
-        this.pauseTime = null;
+        this.playSong(song);
     }
 
     playNext() {
@@ -112,10 +114,7 @@ class Room {
 
         const song = this.queue.shift();
         
-        this.song = song;
-        this.status = "playing";
-        this.startTime = Date.now();
-        this.pauseTime = null;
+        this.playSong(song);
     }
 
     endSong() {
@@ -123,7 +122,7 @@ class Room {
         this.status = "idle";
         this.startTime = null;
         this.pauseTime = null;
-        this.setSongUrl(null);
+        this.songReady = false;
     }
     
     skipNext() {
@@ -142,9 +141,11 @@ class Room {
         if(this.status === "playing") {
             this.pauseTime = Date.now();
             this.status = "paused";
+            io.to(`room:${this.id}`).emit("song-paused");
         } else {
             this.startTime += Date.now() - this.pauseTime;
             this.status = "playing";
+            io.to(`room:${this.id}`).emit("song-played");
         }
     }
 
@@ -161,16 +162,59 @@ class Room {
         }
     }
 
-    setSongUrl(url) {
-        if(!this.song.id) {
+    playSong(song) {
+        if(!song.id) {
             return;
         }
 
-        this.songUrl = url;
-    }
+        const outputDir = `./hls/${this.id}`;
 
-    getSongUrl() {
-        return this.songUrl;
+        mkdirSync(outputDir, { recursive: true });
+
+        for(const file of readdirSync(outputDir)) {
+            unlinkSync(`${outputDir}/${file}`);
+        }
+
+        this.ffmpeg = spawn("ffmpeg", [
+            "-re",
+
+            "-i",
+            song.url,
+
+            "-vn",
+
+            "-c:a",
+            "aac",
+
+            "-b:a",
+            "128k",
+
+            "-f",
+            "hls",
+
+            "-hls_time",
+            "2",
+
+            "-hls_list_size",
+            "5",
+
+            "-hls_flags",
+            "delete_segments+append_list",
+
+            `${outputDir}/stream.m3u8`
+        ])
+
+        this.ffmpeg.stderr.on("data", () => {
+            if(!this.songReady && existsSync(`${outputDir}/stream.m3u8`)) {
+                this.song = song;
+                this.status = "playing";
+                this.startTime = Date.now();
+                this.pauseTime = null;
+                this.songReady = true;
+
+                io.to(`room:${this.id}`).emit("state", this.snapshot());
+            }
+        })
     }
 }
 
@@ -179,9 +223,9 @@ class RoomManager {
         this.rooms = new Map();
     }
     
-    createRoom(owner) {
+    createRoom(owner, io) {
         const id = nanoid();
-        const room = new Room(id, owner.data);
+        const room = new Room(id, owner.data, io);
 
         this.rooms.set(id, room);
         owner.joinRoom(room);
@@ -299,7 +343,7 @@ io.on("connection", (socket) => {
 
     socket.on("create-room", async (callback) => {
         user = userManager.getUser(userId);
-        room = roomManager.createRoom(user);
+        room = roomManager.createRoom(user, io);
         io.in(`user:${user.id}`).socketsJoin(`room:${room.id}`);
         io.to(`room:${room.id}`).emit("state", room.snapshot());
 
@@ -354,12 +398,12 @@ io.on("connection", (socket) => {
                         song.snippet.thumbnails.default?.url
                 }
 
-                room.addSong(songData);
-                io.to(`room:${room.id}`).emit("state", room.snapshot());
+                io.to(`room:${room.id}`).emit("song-added", songData);
                 getYoutubeLink(songId)
                 .then((url) => {
-                    room.setSongUrl(url);
-                    io.to(`room:${room.id}`).emit("song-ready");
+                    songData.url = url;
+                    room.addSong(songData);
+                    io.to(`room:${room.id}`).emit("state", room.snapshot());
                 })
             })
     })
@@ -369,7 +413,6 @@ io.on("connection", (socket) => {
         room = roomManager.getRoom(user.room.id);
 
         room.togglePause();
-        io.to(`room:${room.id}`).emit("state", room.snapshot());
     })
 
     socket.on("skip-next", () => {
@@ -439,20 +482,6 @@ app.use(cors({
     credentials: true
 }))
 app.all("/api/auth/{*any}", toNodeHandler(auth.handler));
-
-app.get("/stream/:id", (req, res) => {
-    res.setHeader("Content-Type", "audio/mpeg");
-
-    const room = roomManager.getRoom(req.params.id);
-    const ffmpegCmd = ["-ss", (Date.now() - room.snapshot().startTime) / 1000, "-i", room.getSongUrl(), "-vn", "-c:a", "libmp3lame", "-b:a", "128k", "-f", "mp3", "pipe:1"];
-    const ffmpeg = spawn("ffmpeg", ffmpegCmd);
-
-    ffmpeg.stdout.pipe(res);
-
-    req.on("close", () => {
-        ffmpeg.kill("SIGKILL");
-    })
-})
-
+app.use("/hls", express.static("./hls"));
 app.use(express.json());
 httpServer.listen(3000);

@@ -9,6 +9,7 @@
     import Search from "@lucide/svelte/icons/search";
     import { PUBLIC_SERVER_URL } from "$env/static/public";
     import { goto } from "$app/navigation";
+    import Hls from "hls.js";
 
     let socket;
     let room = $state({});
@@ -21,17 +22,33 @@
     let tabSizes = $state({ left: 25, middle: 50, right: 25 });
     let resizing = null;
 
+    const hls = new Hls({
+        lowLatencyMode: true
+    })
+    
     onMount(() => {
         socket = io(PUBLIC_SERVER_URL, {
             withCredentials: true
         })
 
         socket.on("state", (state) => {
-            stateUpdate(state);
+            room = state;
+            
+            if(room.songReady) {
+                loadSong();
+            }
         })
 
-        socket.on("song-ready", async () => {
-            await playAudio();
+        socket.on("song-added", (song) => {
+            room.queue.push(song);
+        })
+
+        socket.on("song-paused", () => {
+            audioElem.pause();
+        })
+
+        socket.on("song-played", () => {
+            audioElem.play();
         })
 
         document.addEventListener("mousemove", moveResize);
@@ -45,34 +62,16 @@
         }
     })
 
-    async function stateUpdate(state) {
-        await tick();
+    function loadSong() {
+        hls.loadSource(`${PUBLIC_SERVER_URL}/hls/${room.id}/stream.m3u8`);
+        hls.attachMedia(audioElem);
 
-        room = state;
-        
-        audioSrc = `${PUBLIC_SERVER_URL}/stream/${room.id}`;
-        
-        if(room.status == "playing" && audioElem.paused) {
-            await playAudio();
-        } else if(room.status != "playing" && !audioElem.paused) {
-            await audioElem.pause();
-        }
-    }
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            if(room.status != "playing") return;
 
-    async function playAudio() {
-        audioElem.load();
-        await waitForAudio();
-        audioElem.play();
-    }
-
-    function waitForAudio() {
-        return new Promise((resolve) => {
-            if(audioElem.readyState >= 2) {
-                resolve();
-                return;
-            }
-
-            audioElem.addEventListener("loadedmetadata", resolve, { once: true });
+            audioElem.addEventListener("canplay", () => {
+                audioElem.play();
+            }, { once: true });
         })
     }
 
