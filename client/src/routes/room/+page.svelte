@@ -7,11 +7,11 @@
     import SkipBack from "@lucide/svelte/icons/skip-back";
     import SkipForward from "@lucide/svelte/icons/skip-forward";
     import Search from "@lucide/svelte/icons/search";
-    import { PUBLIC_SERVER_URL } from "$env/static/public";
+    import { PUBLIC_SERVER, PUBLIC_SERVER_URL } from "$env/static/public";
     import { goto } from "$app/navigation";
-    import Hls from "hls.js";
 
     let socket;
+    let ws;
     let room = $state({});
     let searchQuery = $state();
     let searchResults = $state([]);
@@ -21,22 +21,48 @@
     let tabs = $state();
     let tabSizes = $state({ left: 25, middle: 50, right: 25 });
     let resizing = null;
+    let mediaSource;
+    let sourceBuffer;
+    let audioQueue = [];
 
-    const hls = new Hls({
-        lowLatencyMode: true
-    })
-    
-    onMount(() => {
+    onMount(async () => {
         socket = io(PUBLIC_SERVER_URL, {
             withCredentials: true
         })
+        
+        ws = new WebSocket(`ws://${PUBLIC_SERVER}/stream`);
+        ws.binaryType = "arraybuffer";
+
+        mediaSource = new MediaSource();
+        audioSrc = URL.createObjectURL(mediaSource);
+
+        mediaSource.addEventListener("sourceopen", () => {
+            sourceBuffer = mediaSource.addSourceBuffer('audio/webm; codecs="opus"');
+            sourceBuffer.mode = "sequence";
+            audioElem.play();
+
+            sourceBuffer.addEventListener("updateend", () => {
+                appendNext();
+            })
+
+            appendNext();
+        })
+
+        ws.onmessage = (event) => {
+            const buffer = event.data;
+            
+            console.log(buffer)
+            audioQueue.push(buffer);
+            appendNext();
+        }
 
         socket.on("state", (state) => {
             room = state;
-            
-            if(room.songReady) {
-                loadSong();
-            }
+        })
+
+        socket.on("song-ready", (state) => {
+            room = state;
+            console.log(Date.now())
         })
 
         socket.on("song-added", (song) => {
@@ -62,17 +88,33 @@
         }
     })
 
-    function loadSong() {
-        hls.loadSource(`${PUBLIC_SERVER_URL}/hls/${room.id}/stream.m3u8`);
-        hls.attachMedia(audioElem);
+    onDestroy(() => {
+        ws?.close();
+        socket?.disconnect();
+        
+        mediaSource = null;
+        sourceBuffer = null;
+        audioQueue = [];
 
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            if(room.status != "playing") return;
+        if(audioSrc) {
+            URL.revokeObjectURL(audioSrc);
+        }
+    })
 
-            audioElem.addEventListener("canplay", () => {
-                audioElem.play();
-            }, { once: true });
-        })
+    function appendNext() {
+        if(!mediaSource || mediaSource.readyState != "open" || !sourceBuffer || sourceBuffer.updating || audioQueue.length == 0) {
+            return;
+        }
+
+        const chunk = audioQueue.shift();
+
+        try {
+            sourceBuffer.appendBuffer(chunk);
+        } catch(error) {
+            if(mediaSource.readyState == "open") {
+                audioQueue.unshift(chunk);
+            }
+        }
     }
 
     function decodeHtml(html) {

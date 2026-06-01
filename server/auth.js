@@ -4,6 +4,8 @@ dotenv.config();
 import { betterAuth } from "better-auth";
 import { username } from "better-auth/plugins";
 import Database from "better-sqlite3";
+import { userManager } from "./userManager.js";
+import { createAuthMiddleware } from "better-auth/api";
 
 export const db = new Database("./db.sqlite");
 
@@ -21,5 +23,12 @@ export const auth = betterAuth({
         username({
             requireEmail: false,
         })
-    ]
+    ],
+    hooks: {
+        after: createAuthMiddleware(
+            async (user) => {
+                userManager.createUser(user);
+            }
+        )
+    }
 })

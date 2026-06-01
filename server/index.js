@@ -4,14 +4,14 @@ dotenv.config();
 
 import { createServer } from "http";
 import { Server } from "socket.io";
+import { WebSocketServer } from "ws";
 import { execFile, spawn } from "child_process";
 import { parse } from "tinyduration";
-import { toNodeHandler } from "better-auth/node";
-import { customAlphabet } from "nanoid";
+import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { auth } from "./auth.js";
 import cors from "cors";
-import { existsSync, readdirSync, mkdirSync, unlinkSync } from "fs";
-import { PassThrough } from "stream";
+import { userManager } from "./userManager.js";
+import { roomManager } from "./roomManager.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -22,294 +22,47 @@ const io = new Server(httpServer, {
         credentials: true
     }
 })
-const nanoid = customAlphabet("1234567890abcdef", 8);
+const wss = new WebSocketServer({
+    noServer: true,
+    path: "/stream"
+})
 const apiKey = process.env.API_KEY;
 
-const EMPTY_SONG = {
-    id: "",
-    title: "Nothing playing",
-    artist: "Unknown artist",
-    thumbnail: "",
-    paused: true,
-    duration: 0,
-    url: null
-}
-
-class Room {
-    constructor(id, owner, io) {
-        this.owner = owner;
-        this.queue = [];
-        this.history = [];
-        this.members = [];
-        this.song = EMPTY_SONG;
-        this.songReady = false;
-        this.ffmpeg = null;
-        this.status = "idle";
-        this.startTime = null;
-        this.pauseTime = null;
-        this.id = id;
-        this.io = io;
-    }
-
-    snapshot() {
-        return {
-            owner: this.owner,
-            queue: this.queue,
-            history: this.history,
-            members: this.members,
-            song: this.song,
-            songReady: this.songReady,
-            status: this.status,
-            startTime: this.startTime,
-            id: this.id
-        }
-    }
-
-    isSongFinished() {
-        if(!this.startTime || !this.song?.id || this.status !== "playing") return false;
-
-        return Date.now() - this.startTime >= this.song.duration;
-    }
-
-    checkIfFinished(){
-        if(this.status === "playing" && this.isSongFinished()) {
-            this.endSong();
-            this.playNext();
-            return true;
-        }
-
-        return false;
-    }
-    
-    addSong(song) {
-        this.queue.push(song);
-
-        if(!this.song.id) {
-            this.playNext();
-        }
-    }
-    
-    playLast() {
-        if(this.history.length == 0) {
-            return;
-        }
-
-        if(this.song.id) {
-            this.queue.push(this.song);
-        }
-
-        const song = this.history.pop();
-
-        this.playSong(song);
-    }
-
-    playNext() {
-        if(this.queue.length == 0) {
-            return;
-        }
-
-        if(this.song.id) {
-            this.history.push(this.song);
-        }
-
-        const song = this.queue.shift();
-        
-        this.playSong(song);
-    }
-
-    endSong() {
-        this.song = EMPTY_SONG;
-        this.status = "idle";
-        this.startTime = null;
-        this.pauseTime = null;
-        this.songReady = false;
-    }
-    
-    skipNext() {
-        this.playNext();
-    }
-
-    skipBack() {
-        this.playLast();
-    }
-
-    togglePause() {
-        if(!this.song.id) {
-            return;
-        }
-        
-        if(this.status === "playing") {
-            this.pauseTime = Date.now();
-            this.status = "paused";
-            io.to(`room:${this.id}`).emit("song-paused");
-        } else {
-            this.startTime += Date.now() - this.pauseTime;
-            this.status = "playing";
-            io.to(`room:${this.id}`).emit("song-played");
-        }
-    }
-
-    joinRoom(user) {
-        if(!this.members.find(member => member.id === user.id)) {
-            this.members.push(user);
-        }
-    }
-
-    leaveRoom(user) {
-        const memberIndex = this.members.findIndex(member => member.id === user.id)
-        if(memberIndex != -1) {
-            this.members.splice(memberIndex, 1);
-        }
-    }
-
-    playSong(song) {
-        if(!song.id) {
-            return;
-        }
-
-        const outputDir = `./hls/${this.id}`;
-
-        mkdirSync(outputDir, { recursive: true });
-
-        for(const file of readdirSync(outputDir)) {
-            unlinkSync(`${outputDir}/${file}`);
-        }
-
-        this.ffmpeg = spawn("ffmpeg", [
-            "-re",
-
-            "-i",
-            song.url,
-
-            "-vn",
-
-            "-c:a",
-            "aac",
-
-            "-b:a",
-            "128k",
-
-            "-f",
-            "hls",
-
-            "-hls_time",
-            "2",
-
-            "-hls_list_size",
-            "5",
-
-            "-hls_flags",
-            "delete_segments+append_list",
-
-            `${outputDir}/stream.m3u8`
-        ])
-
-        this.ffmpeg.stderr.on("data", () => {
-            if(!this.songReady && existsSync(`${outputDir}/stream.m3u8`)) {
-                this.song = song;
-                this.status = "playing";
-                this.startTime = Date.now();
-                this.pauseTime = null;
-                this.songReady = true;
-
-                io.to(`room:${this.id}`).emit("state", this.snapshot());
-            }
-        })
-    }
-}
-
-class RoomManager {
-    constructor() {
-        this.rooms = new Map();
-    }
-    
-    createRoom(owner, io) {
-        const id = nanoid();
-        const room = new Room(id, owner.data, io);
-
-        this.rooms.set(id, room);
-        owner.joinRoom(room);
-        
-        return room;
-    }
-
-    hasRoom(id) {
-        return this.rooms.has(id)
-    }
-
-    getRoom(id) {
-        return this.rooms.get(id)
-    }
-}
-
-class User {
-    constructor(data) {
-        this.room = null;
-        this.data = data;
-        this.id = data.id;
-    }
-
-    joinRoom(room) {
-        this.room = room;
-        room.joinRoom(this.data);
-    }
-
-    leaveRoom(room) {
-        this.room = null;
-        room.leaveRoom(this.data);
-    }
-}
-
-class UserManager {
-    constructor() {
-        this.users = new Map();
-    }
-
-    createUser(data) {
-        const user = new User(data);
-
-        this.users.set(data.id, user);
-
-        return user;
-    }
-
-    hasUser(id) {
-        return this.users.has(id)
-    }
-
-    getUser(id) {
-        return this.users.get(id);
-    }
-}
-
-const roomManager = new RoomManager();
-const userManager = new UserManager();
-
-async function authMiddleware(socket, next) {
+async function getSession(headers) {
     const session = await auth.api.getSession({
-        headers: socket.request.headers
+        headers: headers
     })
 
     if(!session) {
-        socket.data.user = null;
-        return;
+        return null;
     }
-    
+
     if(!userManager.hasUser(session.user.id)) {
         userManager.createUser(session.user);
     }
 
-    socket.data.user = session.user;
-
-    next();
+    return session;
 }
 
-io.use(authMiddleware);
+io.use(async (socket, next) => {
+    const session = await getSession(socket.request.headers);
+    
+    socket.data.user = session.user;
+
+    if(!session) {
+        return next(new Error("Forbidden"));
+    }
+
+    next();
+})
 
 io.on("connection", (socket) => {
-    const userId = socket.data.user.id;
+    const userId = socket.data.user?.id;
 
-    if(!userId) return;
+    if(!userId) {
+        socket.disconnect(true);
+        return;
+    }
 
     let user = userManager.getUser(userId);
     let room = roomManager.getRoom(user.room?.id);
@@ -359,7 +112,7 @@ io.on("connection", (socket) => {
         user.leaveRoom(room);
         io.in(`user:${user.id}`).socketsLeave(`room:${room.id}`);
         io.to(`room:${room.id}`).emit("state", room.snapshot());
-        io.to(`user:${room.id}`).emit("state", {});
+        io.to(`user:${user.id}`).emit("state", {});
     })
 
     socket.on("add-song", (songId, callback) => {
@@ -451,6 +204,39 @@ io.on("connection", (socket) => {
                 callback(data.items);
             })
     })
+})
+
+httpServer.on("upgrade", async (req, socket, head) => {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    
+    if(url.pathname.startsWith("/stream")) {
+        const session = await getSession(req.headers);
+
+        if(!session) {
+            socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+            socket.destroy();
+            return;
+        }
+
+        req.user = session.user;
+
+        wss.handleUpgrade(req, socket, head, (ws) => {
+            wss.emit("connection", ws, req);
+        })
+    }
+})
+
+wss.on("connection", async (ws, req) => {
+    const user = userManager.getUser(req.user.id);
+    const room = roomManager.getRoom(user.room?.id);
+
+    if(room) {
+        if(room.initSegment) {
+            ws.send(room.initSegment);
+        }
+
+        room.clients.add(ws);
+    }
 })
 
 function getYoutubeLink(songId) {
