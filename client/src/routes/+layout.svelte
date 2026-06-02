@@ -11,7 +11,7 @@
 			return;
 		}
 
-		closeAlert(alertData.id);
+		closeAlert(alertData);
 		alertData.onInput(alertData.inputData);
 	}
 </script>
@@ -35,7 +35,7 @@
 			{/if}
 			{#if alertData.type != "toast"}
 				<div class="buttons">
-					<button onclick={() => { closeAlert(alertData.id) }}>{alertData.isInput ? "Cancel" : "Close"}</button>
+					<button onclick={() => { closeAlert(alertData) }}>{alertData.isInput ? "Cancel" : "Close"}</button>
 					{#if alertData.isInput}
 						<button onclick={() => onInput(alertData)}>Continue</button>
 					{/if}

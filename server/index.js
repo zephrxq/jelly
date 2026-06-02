@@ -4,8 +4,6 @@ dotenv.config();
 
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { WebSocketServer } from "ws";
-import { execFile, spawn } from "child_process";
 import { parse } from "tinyduration";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { auth } from "./auth.js";
@@ -21,10 +19,6 @@ const io = new Server(httpServer, {
         methods: ["GET", "POST"],
         credentials: true
     }
-})
-const wss = new WebSocketServer({
-    noServer: true,
-    path: "/stream"
 })
 const apiKey = process.env.API_KEY;
 
@@ -151,13 +145,8 @@ io.on("connection", (socket) => {
                         song.snippet.thumbnails.default?.url
                 }
 
+                room.addSong(songData);
                 io.to(`room:${room.id}`).emit("song-added", songData);
-                getYoutubeLink(songId)
-                .then((url) => {
-                    songData.url = url;
-                    room.addSong(songData);
-                    io.to(`room:${room.id}`).emit("state", room.snapshot());
-                })
             })
     })
 
@@ -206,53 +195,6 @@ io.on("connection", (socket) => {
     })
 })
 
-httpServer.on("upgrade", async (req, socket, head) => {
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    
-    if(url.pathname.startsWith("/stream")) {
-        const session = await getSession(req.headers);
-
-        if(!session) {
-            socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
-            socket.destroy();
-            return;
-        }
-
-        req.user = session.user;
-
-        wss.handleUpgrade(req, socket, head, (ws) => {
-            wss.emit("connection", ws, req);
-        })
-    }
-})
-
-wss.on("connection", async (ws, req) => {
-    const user = userManager.getUser(req.user.id);
-    const room = roomManager.getRoom(user.room?.id);
-
-    if(room) {
-        if(room.initSegment) {
-            ws.send(room.initSegment);
-        }
-
-        room.clients.add(ws);
-    }
-})
-
-function getYoutubeLink(songId) {
-    return new Promise((resolve, reject) => {
-        let execCmd = ["./server/yt-dlp", "-f", "bestaudio", "-g", "-q", "--no-warnings", `https://youtube.com/watch?v=${songId}`, "--cookies", "./server/cookies.txt"];
-
-        execFile("python", execCmd, (error, stdout, stderr) => {
-            if(error) {
-                reject(error);
-            } else {
-                resolve(stdout);
-            }
-        })
-    })
-}
-
 setInterval(() => {
     for(const room of roomManager.rooms.values()) {
         const changed = room.checkIfFinished();
@@ -268,6 +210,6 @@ app.use(cors({
     credentials: true
 }))
 app.all("/api/auth/{*any}", toNodeHandler(auth.handler));
-app.use("/hls", express.static("./hls"));
+app.use("/songs", express.static("./songs"));
 app.use(express.json());
 httpServer.listen(3000);

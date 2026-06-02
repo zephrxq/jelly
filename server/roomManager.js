@@ -19,7 +19,6 @@ class Room {
         this.queue = [];
         this.history = [];
         this.members = [];
-        this.clients = new Set();
         this.song = EMPTY_SONG;
         this.songReady = false;
         this.status = "idle";
@@ -27,7 +26,6 @@ class Room {
         this.pauseTime = null;
         this.id = id;
         this.io = io;
-        this.initSegment = null;
     }
 
     snapshot() {
@@ -102,10 +100,6 @@ class Room {
         this.startTime = null;
         this.pauseTime = null;
         this.songReady = false;
-        this.initSegment = null;
-        if(this.ffmpeg) {
-            this.ffmpeg.kill("SIGKILL");
-        }
 
         this.io.emit("state", this.snapshot());
     }
@@ -126,13 +120,11 @@ class Room {
         if(this.status === "playing") {
             this.pauseTime = Date.now();
             this.status = "paused";
-            this.ffmpeg.kill("SIGSTOP");
-            this.io.to(`room:${this.id}`).emit("song-paused");
+            this.io.to(`room:${this.id}`).emit("song-paused", this.snapshot());
         } else {
             this.startTime += Date.now() - this.pauseTime;
             this.status = "playing";
-            this.ffmpeg.kill("SIGCONT");
-            this.io.to(`room:${this.id}`).emit("song-played");
+            this.io.to(`room:${this.id}`).emit("song-played", this.snapshot());
         }
     }
 
@@ -149,104 +141,30 @@ class Room {
         }
     }
 
-    async playSong(song) {
+    playSong(song) {
         if(!song.id) {
             return;
         }
 
         this.endSong();
 
-        this.ffmpeg = spawn("ffmpeg", [
-            "-readrate",
-            "1",
+        let spawnCmd = ["-f", "bestaudio", "-o", "./songs/%(id)s", "-q", "--no-warnings", `https://youtube.com/watch?v=${song.id}`, "--cookies", "./server/cookies.txt"];
 
-            "-i",
-            song.url,
+        const ytDlp = spawn("./server/yt-dlp", spawnCmd);
 
-            "-vn",
-
-            "-c:a",
-            "libopus",
-
-            "-f",
-            "webm",
-
-            "-dash",
-            "1",
-
-            "-live",
-            "1",
-
-            "-reconnect",
-            "1",
-            
-            "-reconnect_streamed",
-            "1",
-            
-            "-reconnect_on_network_error",
-            "1",
-
-            "pipe:1"
-        ])
-
-        let buffer = Buffer.alloc(0);
-
-        this.ffmpeg.stdout.on("data", (chunk) => {
-            if(!this.songReady) {
-                buffer = Buffer.concat([buffer, chunk]);
-                const clusterIndex = buffer.indexOf(Buffer.from([0x1F, 0x43, 0xB6, 0x75]));
-
-                if(clusterIndex != -1) {
-                    const leftover = buffer.subarray(clusterIndex);
-
-                    this.song = song;
-                    this.status = "playing";
-                    this.startTime = Date.now();
-                    this.pauseTime = null;
-                    this.songReady = true;
-                    this.initSegment = buffer.subarray(0, clusterIndex);
-
-                    this.io.to(`room:${this.id}`).emit("song-ready", this.snapshot());
-
-                    for(const client of this.clients) {
-                        if(client.readyState == 1) {
-                            client.send(this.initSegment);
-                        }
-                    }
-                    
-                    for(const client of this.clients) {
-                        if(client.readyState == 1) {
-                            client.send(leftover);
-                        }
-                    }
-                }
-
-                return;
-            }
-            
-            for(const client of this.clients) {
-                if(client.readyState == 1) {
-                    client.send(chunk);
-                }
-            }
+        ytDlp.on("error", (error) => {
+            return;
         })
 
-        this.ffmpeg.stderr.on("data", d => {
-            console.log("[ffmpeg]", d.toString());
-        });
+        ytDlp.on("close", () => {
+            this.song = song;
+            this.status = "playing";
+            this.startTime = Date.now();
+            this.pauseTime = null;
+            this.songReady = true;
 
-        this.ffmpeg.on("exit", (code, signal) => {
-            console.log(song.duration);
-            console.log("EXIT", code, signal);
-        });
-
-        this.ffmpeg.on("close", (code, signal) => {
-            console.log("CLOSE", code, signal);
-        });
-
-        this.ffmpeg.on("error", err => {
-            console.error("SPAWN ERROR", err);
-        });
+            this.io.emit("state", this.snapshot());
+        })
     }
 }
 

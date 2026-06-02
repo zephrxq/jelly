@@ -11,7 +11,6 @@
     import { goto } from "$app/navigation";
 
     let socket;
-    let ws;
     let room = $state({});
     let searchQuery = $state();
     let searchResults = $state([]);
@@ -29,52 +28,34 @@
         socket = io(PUBLIC_SERVER_URL, {
             withCredentials: true
         })
-        
-        ws = new WebSocket(`ws://${PUBLIC_SERVER}/stream`);
-        ws.binaryType = "arraybuffer";
 
-        mediaSource = new MediaSource();
-        audioSrc = URL.createObjectURL(mediaSource);
-
-        mediaSource.addEventListener("sourceopen", () => {
-            sourceBuffer = mediaSource.addSourceBuffer('audio/webm; codecs="opus"');
-            sourceBuffer.mode = "sequence";
-            audioElem.play();
-
-            sourceBuffer.addEventListener("updateend", () => {
-                appendNext();
-            })
-
-            appendNext();
-        })
-
-        ws.onmessage = (event) => {
-            const buffer = event.data;
+        socket.on("state", async (state) => {
+            room = state;
             
-            console.log(buffer)
-            audioQueue.push(buffer);
-            appendNext();
-        }
-
-        socket.on("state", (state) => {
-            room = state;
-        })
-
-        socket.on("song-ready", (state) => {
-            room = state;
-            console.log(Date.now())
+            if(audioSrc != `${PUBLIC_SERVER_URL}/songs/${room.song.id}`) {
+                audioSrc = `${PUBLIC_SERVER_URL}/songs/${room.song.id}`;
+                await loadAudio();
+            }
+            
+            if(room.status == "playing") {
+                if(audioElem.paused) {
+                    playAudio();
+                }
+            }
         })
 
         socket.on("song-added", (song) => {
             room.queue.push(song);
         })
 
-        socket.on("song-paused", () => {
+        socket.on("song-paused", (state) => {
+            room = state;
             audioElem.pause();
         })
 
-        socket.on("song-played", () => {
-            audioElem.play();
+        socket.on("song-played", (state) => {
+            room = state;
+            playAudio();
         })
 
         document.addEventListener("mousemove", moveResize);
@@ -86,34 +67,46 @@
             navigator.mediaSession.setActionHandler("previoustrack", skipBack);
             navigator.mediaSession.setActionHandler("nexttrack", skipNext);
         }
+
+        setInterval(syncTime, 500);
     })
 
     onDestroy(() => {
-        ws?.close();
         socket?.disconnect();
-        
-        mediaSource = null;
-        sourceBuffer = null;
-        audioQueue = [];
-
-        if(audioSrc) {
-            URL.revokeObjectURL(audioSrc);
-        }
     })
 
-    function appendNext() {
-        if(!mediaSource || mediaSource.readyState != "open" || !sourceBuffer || sourceBuffer.updating || audioQueue.length == 0) {
-            return;
-        }
+    function loadAudio() {
+        return new Promise((resolve, reject) => {
+            audioElem.load();
 
-        const chunk = audioQueue.shift();
+            audioElem.addEventListener("canplaythrough", resolve, { once: true });
+        })
+    }
 
+    async function playAudio() {
         try {
-            sourceBuffer.appendBuffer(chunk);
+            syncTime();
+            await audioElem.play();
         } catch(error) {
-            if(mediaSource.readyState == "open") {
-                audioQueue.unshift(chunk);
-            }
+            addAlert({ text: "Failed to play", onClose: () => audioElem.play() });
+        }
+    }
+
+    function syncTime() {
+        if(room.status != "playing") return;
+        
+        const serverTime = (Date.now() - room.startTime) / 1000;
+        const drift = audioElem.currentTime - serverTime;
+        
+        if(Math.abs(drift) > 0.5) {
+            audioElem.currentTime = serverTime;
+        }
+        if(drift > 0.1) {
+            audioElem.playbackRate = 0.98;
+        } else if(drift < -0.1) {
+            audioElem.playbackRate = 1.02;
+        } else {
+            audioElem.playbackRate = 1;
         }
     }
 

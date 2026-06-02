@@ -21,6 +21,10 @@ export function addAlert(data) {
     }
 }
 
-export function closeAlert(id) {
-    alerts.update((list) => list.filter((alert) => alert.id !== id));
+export function closeAlert(alert) {
+    if(alert.onClose) {
+        alert.onClose();
+    }
+    
+    alerts.update((list) => list.filter((a) => a.id !== alert.id));
 }
