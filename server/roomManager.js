@@ -1,5 +1,6 @@
 import { customAlphabet } from "nanoid";
 import { spawn } from "child_process";
+import { fileExists } from "./utils.js";
 
 const nanoid = customAlphabet("1234567890abcdef", 8);
 
@@ -58,8 +59,14 @@ class Room {
         return false;
     }
     
-    addSong(song) {
+    async addSong(song) {
         this.queue.push(song);
+
+        try {
+            await this.downloadSong(song);
+        } catch(error) {
+            console.log(error);
+        }
 
         if(!this.song.id) {
             this.playNext();
@@ -141,29 +148,36 @@ class Room {
         }
     }
 
-    playSong(song) {
+    async playSong(song) {
         if(!song.id) {
             return;
         }
 
         this.endSong();
 
-        let spawnCmd = ["-f", "bestaudio", "-o", "./songs/%(id)s", "-q", "--no-warnings", `https://youtube.com/watch?v=${song.id}`, "--cookies", "./server/cookies.txt"];
+        this.song = song;
+        this.status = "playing";
+        this.startTime = Date.now();
+        this.pauseTime = null;
+        this.songReady = true;
 
-        const ytDlp = spawn("./server/yt-dlp", spawnCmd);
+        this.io.emit("state", this.snapshot());
+    }
 
-        ytDlp.on("error", (error) => {
+    async downloadSong(song) {
+        const downloaded = await fileExists(`./songs/${song.id}`);
+        console.log(downloaded)
+        if(downloaded) {
             return;
-        })
+        }
 
-        ytDlp.on("close", () => {
-            this.song = song;
-            this.status = "playing";
-            this.startTime = Date.now();
-            this.pauseTime = null;
-            this.songReady = true;
+        return new Promise((resolve, reject) => {
+            let spawnCmd = ["-f", "bestaudio", "-o", "./songs/%(id)s", "-q", "--no-warnings", `https://youtube.com/watch?v=${song.id}`, "--cookies", "./server/cookies.txt"];
 
-            this.io.emit("state", this.snapshot());
+            const ytDlp = spawn("./server/yt-dlp", spawnCmd);
+
+            ytDlp.on("error", reject);
+            ytDlp.on("close", resolve);
         })
     }
 }
