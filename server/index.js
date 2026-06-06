@@ -5,9 +5,10 @@ dotenv.config();
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { parse } from "tinyduration";
-import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
-import { auth } from "./auth.js";
+import { toNodeHandler } from "better-auth/node";
+import { createClient } from "redis";
 import cors from "cors";
+import { auth } from "./auth.js";
 import { userManager } from "./userManager.js";
 import { roomManager } from "./roomManager.js";
 
@@ -20,6 +21,7 @@ const io = new Server(httpServer, {
         credentials: true
     }
 })
+
 const apiKey = process.env.API_KEY;
 
 async function getSession(headers) {
@@ -121,7 +123,7 @@ io.on("connection", (socket) => {
 
         fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`)
             .then((res) => res.json())
-            .then((data) => {
+            .then(async (data) => {
                 if(!data.items || data.items.length == 0) {
                     callback({
                         status: "fail",
@@ -145,8 +147,8 @@ io.on("connection", (socket) => {
                         song.snippet.thumbnails.default?.url
                 }
 
-                room.addSong(songData);
                 io.to(`room:${room.id}`).emit("song-added", songData);
+                await room.addSong(songData);
             })
     })
 

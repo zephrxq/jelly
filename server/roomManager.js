@@ -1,6 +1,7 @@
 import { customAlphabet } from "nanoid";
 import { spawn } from "child_process";
 import { fileExists } from "./utils.js";
+import { client } from "./redis.js";
 
 const nanoid = customAlphabet("1234567890abcdef", 8);
 
@@ -62,18 +63,12 @@ class Room {
     async addSong(song) {
         this.queue.push(song);
 
-        try {
-            await this.downloadSong(song);
-        } catch(error) {
-            console.log(error);
-        }
-
         if(!this.song.id) {
-            this.playNext();
+            await this.playNext();
         }
     }
     
-    playLast() {
+    async playLast() {
         if(this.history.length == 0) {
             return;
         }
@@ -84,10 +79,12 @@ class Room {
 
         const song = this.history.pop();
         
+        await this.downloadSong(song);
+
         this.playSong(song);
     }
 
-    playNext() {
+    async playNext() {
         if(this.queue.length == 0) {
             return;
         }
@@ -97,8 +94,16 @@ class Room {
         }
 
         const song = this.queue.shift();
-        
+
+        await this.downloadSong(song);
+
         this.playSong(song);
+
+        const downloadQueue = this.queue.slice(0, 5);
+
+        Promise.all(downloadQueue.map((queueSong) => {
+            return this.downloadSong(queueSong);
+        }))
     }
 
     endSong() {
@@ -112,10 +117,12 @@ class Room {
     }
     
     skipNext() {
+        this.endSong();
         this.playNext();
     }
 
     skipBack() {
+        this.endSong();
         this.playLast();
     }
 
@@ -165,11 +172,20 @@ class Room {
     }
 
     async downloadSong(song) {
-        const downloaded = await fileExists(`./songs/${song.id}`);
-        console.log(downloaded)
+        const songPath = `./songs/${song.id}`;
+        const downloaded = await fileExists(songPath);
+
         if(downloaded) {
             return;
         }
+
+        await client.set(
+            `song-file:${song.id}`,
+            songPath,
+            {
+                EX: song.duration + 3600
+            }
+        )
 
         return new Promise((resolve, reject) => {
             let spawnCmd = ["-f", "bestaudio", "-o", "./songs/%(id)s", "-q", "--no-warnings", `https://youtube.com/watch?v=${song.id}`, "--cookies", "./server/cookies.txt"];
