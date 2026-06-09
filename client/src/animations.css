@@ -1,0 +1,23 @@
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+div.loading {
+    width: 54px;
+    height: 54px;
+    border: 5px solid var(--text);
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    animation: rotation 0.75s linear infinite;
+}
+
+div.loading[hidden] {
+    display: none;
+}

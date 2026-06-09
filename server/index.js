@@ -159,20 +159,18 @@ io.on("connection", (socket) => {
         room.togglePause();
     })
 
-    socket.on("skip-next", () => {
+    socket.on("skip-next", async () => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
 
-        room.skipNext();
-        io.to(`room:${room.id}`).emit("state", room.snapshot());
+        await room.skipNext();
     })
 
-    socket.on("skip-back", () => {
+    socket.on("skip-back", async () => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
 
-        room.skipBack();
-        io.to(`room:${room.id}`).emit("state", room.snapshot());
+        await room.skipBack();
     })
 
     socket.on("search", (query, callback) => {

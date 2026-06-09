@@ -9,6 +9,7 @@
     import Search from "@lucide/svelte/icons/search";
     import { PUBLIC_SERVER, PUBLIC_SERVER_URL } from "$env/static/public";
     import { goto } from "$app/navigation";
+    import "../../animations.css";
 
     let socket;
     let room = $state({});
@@ -233,6 +234,7 @@
             <div id="nowPlayingInfo">
                 <div id="thumbnail">
                     <img alt="Thumbnail" src={room.song?.thumbnail} hidden={!room.song?.thumbnail}>
+                    <div class="loading" hidden={room.status != "loading"}></div>
                 </div>
                 <h2>{room.song?.title}</h2>
                 <p>{room.song?.artist}</p>
@@ -450,6 +452,9 @@
         width: 100%;
         aspect-ratio: 16 / 9;
         background-color: var(--primary-800);
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
 
     div#nowPlayingInfo img {

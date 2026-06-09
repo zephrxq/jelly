@@ -69,7 +69,7 @@ class Room {
     }
     
     async playLast() {
-        if(this.history.length == 0) {
+        if(this.queue.length == 0) {
             return;
         }
 
@@ -93,10 +93,13 @@ class Room {
             this.history.push(this.song);
         }
 
+        this.status = "loading";
+
+        this.io.emit("state", this.snapshot());
+
         const song = this.queue.shift();
 
         await this.downloadSong(song);
-
         this.playSong(song);
 
         const downloadQueue = this.queue.slice(0, 5);
@@ -116,14 +119,22 @@ class Room {
         this.io.emit("state", this.snapshot());
     }
     
-    skipNext() {
+    async skipNext() {
+        if(this.queue.length == 0) {
+            return;
+        }
+
         this.endSong();
-        this.playNext();
+        await this.playNext();
     }
 
-    skipBack() {
+    async skipBack() {
+        if(this.history.length == 0) {
+            return;
+        }
+
         this.endSong();
-        this.playLast();
+        await this.playLast();
     }
 
     togglePause() {
