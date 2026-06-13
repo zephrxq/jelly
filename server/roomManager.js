@@ -82,7 +82,10 @@ class Room {
         this.queue.push(song);
 
         if(!this.song.id) {
+            await this.downloadSong(song);
             return this.handlePlayNext();
+        } else {
+            void this.downloadSong(song);
         }
     }
     
@@ -179,7 +182,7 @@ class Room {
             
             ytDlp.on("error", reject);
             ytDlp.on("close", async (code) => {
-                if(code == 1) {
+                if(code != 0) {
                     return reject();
                 }
 
@@ -190,6 +193,8 @@ class Room {
                         EX: song.duration + 3600
                     }
                 )
+
+                resolve();
             })
         })
     }
