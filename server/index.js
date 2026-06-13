@@ -4,9 +4,7 @@ dotenv.config();
 
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { parse } from "tinyduration";
 import { toNodeHandler } from "better-auth/node";
-import { createClient } from "redis";
 import cors from "cors";
 import { auth } from "./auth.js";
 import { userManager } from "./userManager.js";
@@ -108,7 +106,7 @@ io.on("connection", (socket) => {
         user.leaveRoom(room);
         io.in(`user:${user.id}`).socketsLeave(`room:${room.id}`);
         io.to(`room:${room.id}`).emit("state", room.snapshot());
-        io.to(`user:${user.id}`).emit("state", {});
+        socket.to(`user:${user.id}`).emit("leave-room");
     })
 
     socket.on("add-song", (songId, callback) => {

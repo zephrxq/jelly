@@ -59,6 +59,10 @@
             playAudio();
         })
 
+        socket.on("leave-room", () => {
+            goto("/home");
+        })
+
         document.addEventListener("mousemove", moveResize);
         document.addEventListener("mouseup", endResize);
         
