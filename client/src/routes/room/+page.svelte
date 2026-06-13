@@ -33,8 +33,8 @@
         socket.on("state", async (state) => {
             room = state;
             
-            if(audioSrc != `${PUBLIC_SERVER_URL}/songs/${room.song.id}`) {
-                audioSrc = `${PUBLIC_SERVER_URL}/songs/${room.song.id}`;
+            if(audioSrc != `${PUBLIC_SERVER_URL}/songs/${room.song.id}.m4a`) {
+                audioSrc = `${PUBLIC_SERVER_URL}/songs/${room.song.id}.m4a`;
                 await loadAudio();
             }
             

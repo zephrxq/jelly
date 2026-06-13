@@ -168,7 +168,7 @@ class Room {
     }
 
     async downloadSong(song) {
-        const songPath = `./songs/${song.id}`;
+        const songPath = `./songs/${song.id}.m4a`;
         const downloaded = await fileExists(songPath);
         
         if(downloaded) {
@@ -176,7 +176,7 @@ class Room {
         }
 
         return new Promise((resolve, reject) => {
-            let spawnCmd = ["-f", "bestaudio", "-o", "./songs/%(id)s", `https://youtube.com/watch?v=${song.id}`, "--cookies", "./server/cookies.txt"];
+            let spawnCmd = ["-P", "./songs", "-o", "%(id)s", "--cookies", "./server/cookies.txt", "--extractor-args", "youtube:player-client=web", "--extract-audio", "--audio-format", "m4a", "--no-playlist", "--quiet", "--no-warnings", `https://youtube.com/watch?v=${song.id}`];
 
             const ytDlp = spawn("yt-dlp", spawnCmd);
             
