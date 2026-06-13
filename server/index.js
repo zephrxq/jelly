@@ -148,7 +148,11 @@ io.on("connection", (socket) => {
                 }
 
                 io.to(`room:${room.id}`).emit("song-added", songData);
-                await room.addSong(songData);
+
+                room.dispatch({
+                    type: "ADD_SONG",
+                    song: songData
+                })
             })
     })
 
@@ -156,21 +160,27 @@ io.on("connection", (socket) => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
 
-        room.togglePause();
+        room.dispatch({
+            type: "TOGGLE_PAUSE"
+        })
     })
 
     socket.on("skip-next", async () => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
 
-        await room.skipNext();
+        room.dispatch({
+            type: "SKIP_NEXT"
+        })
     })
 
     socket.on("skip-back", async () => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
 
-        await room.skipBack();
+        room.dispatch({
+            type: "SKIP_BACK"
+        })
     })
 
     socket.on("search", (query, callback) => {
