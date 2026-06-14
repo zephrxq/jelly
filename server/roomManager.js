@@ -86,7 +86,6 @@ class Room {
         this.queue.push(song);
 
         if(!this.song.id) {
-            await this.downloadSong(song);
             return this.handlePlayNext();
         } else {
             void this.downloadSong(song);
@@ -97,6 +96,9 @@ class Room {
         if(this.queueIndex < 1) {
             return;
         }
+
+        this.status = "loading";
+        this.io.to(`room:${this.id}`).emit("state", this.snapshot());
 
         this.queueIndex -= 1;
         const song = this.queue[this.queueIndex];
@@ -109,6 +111,9 @@ class Room {
         if(this.queueIndex + 1 >= this.queue.length) {
             return;
         }
+        
+        this.status = "loading";
+        this.io.to(`room:${this.id}`).emit("state", this.snapshot());
 
         this.queueIndex += 1;
         const song = this.queue[this.queueIndex];
