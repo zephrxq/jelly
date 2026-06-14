@@ -92,6 +92,7 @@ io.on("connection", (socket) => {
     socket.on("create-room", async (callback) => {
         user = userManager.getUser(userId);
         room = roomManager.createRoom(user, io);
+
         io.in(`user:${user.id}`).socketsJoin(`room:${room.id}`);
         io.to(`room:${room.id}`).emit("state", room.snapshot());
 
@@ -102,6 +103,11 @@ io.on("connection", (socket) => {
 
     socket.on("leave-room", () => {
         user = userManager.getUser(userId);
+
+        if(!user.room) {
+            return;
+        }
+
         room = roomManager.getRoom(user.room.id);
         
         user.leaveRoom(room);
@@ -113,6 +119,10 @@ io.on("connection", (socket) => {
     socket.on("add-song", (songId, callback) => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
+
+        if(!user.room) {
+            return;
+        }
 
         const params = new URLSearchParams({
             part: "snippet,contentDetails",
@@ -159,6 +169,10 @@ io.on("connection", (socket) => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
 
+        if(!user.room) {
+            return;
+        }
+
         room.dispatch({
             type: "TOGGLE_PAUSE"
         })
@@ -167,6 +181,10 @@ io.on("connection", (socket) => {
     socket.on("skip-next", async () => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
+
+        if(!user.room) {
+            return;
+        }
 
         room.dispatch({
             type: "SKIP_NEXT"
@@ -177,6 +195,10 @@ io.on("connection", (socket) => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
 
+        if(!user.room) {
+            return;
+        }
+
         room.dispatch({
             type: "SKIP_BACK"
         })
@@ -185,6 +207,10 @@ io.on("connection", (socket) => {
     socket.on("search", (query, callback) => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
+
+        if(!user.room) {
+            return;
+        }
 
         const params = new URLSearchParams({
             part: "snippet",
@@ -206,6 +232,10 @@ io.on("connection", (socket) => {
     socket.on("seek", (time) => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
+
+        if(!user.room) {
+            return;
+        }
 
         room.dispatch({
             type: "SEEK",

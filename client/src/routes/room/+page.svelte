@@ -522,7 +522,7 @@
         width: 100%;
         display: flex;
         flex-direction: column;
-        margin-top: 16px;
+        margin-top: 24px;
     }
 
     div#nowPlayingControls #buttons {
