@@ -18,10 +18,10 @@ const EMPTY_SONG = {
 class Room {
     constructor(id, owner, io) {
         this.owner = owner;
-        this.history = [];
         this.members = [];
         this.actions = [];
         this.queue = [];
+        this.queueIndex = -1;
         this.song = EMPTY_SONG;
         this.songReady = false;
         this.status = "idle";
@@ -94,59 +94,53 @@ class Room {
     }
     
     async handlePlayLast() {
-        if(this.history.length == 0) {
+        if(this.queueIndex < 1) {
             return;
         }
 
-        if(this.song.id) {
-            this.queue.push(this.song);
-        }
-
-        const song = this.history.pop();
+        this.queueIndex -= 1;
+        const song = this.queue[this.queueIndex];
         
         await this.downloadSong(song);
         this.playSong(song);
     }
 
     async handlePlayNext() {
-        if(this.queue.length == 0) {
+        if(this.queueIndex + 1 >= this.queue.length) {
             return;
         }
 
-        if(this.song.id) {
-            this.history.push(this.song);
-        }
-
-        const song = this.queue.shift();
+        this.queueIndex += 1;
+        const song = this.queue[this.queueIndex];
 
         await this.downloadSong(song);
         this.playSong(song);
 
-        const downloadQueue = this.queue.slice(0, 5);
+        const downloadQueue = this.queue.slice(this.queueIndex + 1, this.queueIndex + 5);
 
         void Promise.allSettled(downloadQueue.map((queueSong) => {
             return this.downloadSong(queueSong);
         }))
     }
 
-    async handleSkipNext() {
-        if(this.queue.length == 0) {
-            return;
-        }
-
-        this.endSong();
-
-        return this.handlePlayNext();
-    }
-
     async handleSkipBack() {
-        if(this.history.length == 0) {
+        if(this.queueIndex < 1) {
             return;
         }
 
         this.endSong();
 
         return this.handlePlayLast();
+    }
+
+    async handleSkipNext() {
+        if(this.queueIndex + 1 >= this.queue.length) {
+            return;
+        }
+
+        this.endSong();
+
+        return this.handlePlayNext();
     }
 
     handleTogglePause() {
@@ -226,6 +220,10 @@ class Room {
     }
 
     endSong() {
+        if(!this.song.id) {
+            return;
+        }
+
         this.song = EMPTY_SONG;
         this.status = "idle";
         this.startTime = null;
@@ -236,8 +234,7 @@ class Room {
     snapshot() {
         return {
             owner: this.owner,
-            queue: this.queue,
-            history: this.history,
+            queue: this.queue.slice(this.queueIndex + 1),
             members: this.members,
             song: this.song,
             songReady: this.songReady,
