@@ -6,6 +6,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { toNodeHandler } from "better-auth/node";
 import cors from "cors";
+import { parse } from "tinyduration";
 import { auth } from "./auth.js";
 import { userManager } from "./userManager.js";
 import { roomManager } from "./roomManager.js";
@@ -200,6 +201,16 @@ io.on("connection", (socket) => {
             .then((data) => {
                 callback(data.items);
             })
+    })
+
+    socket.on("seek", (time) => {
+        user = userManager.getUser(userId);
+        room = roomManager.getRoom(user.room.id);
+
+        room.dispatch({
+            type: "SEEK",
+            time: time
+        })
     })
 })
 

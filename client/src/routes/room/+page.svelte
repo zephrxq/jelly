@@ -21,9 +21,11 @@
     let tabs = $state();
     let tabSizes = $state({ left: 25, middle: 50, right: 25 });
     let resizing = null;
+    let seeking = false;
     let mediaSource;
     let sourceBuffer;
     let audioQueue = [];
+    let currentTime = $state();
 
     onMount(async () => {
         socket = io(PUBLIC_SERVER_URL, {
@@ -63,8 +65,19 @@
             goto("/home");
         })
 
-        document.addEventListener("mousemove", moveResize);
-        document.addEventListener("mouseup", endResize);
+        document.addEventListener("mousemove", (event) => {
+            if(resizing) {
+                moveResize(event);
+            }
+        })
+        document.addEventListener("mouseup", (event) => {
+            if(resizing) {
+                endResize(event);
+            }
+            if(seeking) {
+                endSeeking(event);
+            }
+        })
         
         if("mediaSession" in navigator) {
             navigator.mediaSession.setActionHandler("play", togglePause);
@@ -199,10 +212,37 @@
     function endResize(event) {
         resizing = null;
     }
+
+    function startSeeking(event) {
+        seeking = true;
+    }
+
+    function seek(event) {
+        if(!room.song.id) {
+            return
+        }
+
+        const newTime = event.target.value * 1000;
+
+        room.startTime = Date.now() - (newTime);
+        socket.emit("seek", newTime);
+    }
+
+    function endSeeking(event) {
+        seeking = false;
+    }
+
+    function updateTime() {
+        if(seeking) {
+            return;
+        }
+
+        currentTime = audioElem.currentTime;
+    }
 </script>
 
 <div id="room">
-    <audio bind:this={audioElem} src={audioSrc}></audio>
+    <audio bind:this={audioElem} ontimeupdate={updateTime} src={audioSrc}></audio>
     <div id="topbar">
         <div id="left">
             <h2>{`${room.owner?.name}'s room`}</h2>
@@ -244,19 +284,22 @@
                 <p>{room.song?.artist}</p>
             </div>
             <div id="nowPlayingControls">
-                <button id="back" aria-label="Back" onclick={skipBack}>
-                    <SkipBack size={28}></SkipBack>
-                </button>
-                <button id="play" aria-label="Play" onclick={togglePause}>
-                    {#if room.status == "paused" || room.status == "idle"}
-                        <Play size={28}></Play>
-                    {:else}
-                        <Pause size={28}></Pause>
-                    {/if}
-                </button>
-                <button id="next" aria-label="Next" onclick={skipNext}>
-                    <SkipForward size={28}></SkipForward>
-                </button>
+                <input type="range" onchange={seek} value={currentTime} min={0} max={(room.song?.duration || 0) / 1000} step={1} onmousedown={startSeeking}>
+                <div id="buttons">
+                    <button id="back" aria-label="Back" onclick={skipBack}>
+                        <SkipBack size={28}></SkipBack>
+                    </button>
+                    <button id="play" aria-label="Play" onclick={togglePause}>
+                        {#if room.status == "paused" || room.status == "idle"}
+                            <Play size={28}></Play>
+                        {:else}
+                            <Pause size={28}></Pause>
+                        {/if}
+                    </button>
+                    <button id="next" aria-label="Next" onclick={skipNext}>
+                        <SkipForward size={28}></SkipForward>
+                    </button>
+                </div>
             </div>
         </div>
         <button aria-label="Resize right" class="tab resizer" id="right" onmousedown={(event) => startResize(event)}>
@@ -478,12 +521,19 @@
     div#nowPlayingControls {
         width: 100%;
         display: flex;
-        flex-direction: row;
-        justify-content: center;
+        flex-direction: column;
         margin-top: 16px;
     }
+
+    div#nowPlayingControls #buttons {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        margin-top: 8px;
+    }
     
-    div#nowPlayingControls button {
+    div#nowPlayingControls #buttons button {
         height: 28px;
         width: 28px;
         padding: 8px;

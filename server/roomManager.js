@@ -75,6 +75,10 @@ class Room {
             case "SONG_FINISHED": {
                 return this.handleSongFinished();
             }
+
+            case "SEEK": {
+                return this.handleSeek(action.time);
+            }
         }
     }
 
@@ -167,6 +171,14 @@ class Room {
         return this.handlePlayNext();
     }
 
+    handleSeek(time) {
+        if(!this.song.id) {
+            return;
+        }
+
+        this.startTime = Date.now() - (time);
+    }
+
     async downloadSong(song) {
         const songPath = `./songs/${song.id}.m4a`;
         const downloaded = await fileExists(songPath);
@@ -183,7 +195,7 @@ class Room {
             ytDlp.on("error", reject);
             ytDlp.on("close", async (code) => {
                 if(code != 0) {
-                    return reject();
+                    return reject(new Error(`yt-dlp exited with code ${code}`));
                 }
 
                 await client.set(
