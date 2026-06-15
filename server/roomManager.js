@@ -35,7 +35,9 @@ class Room {
     dispatch(action) {
         const result = this.processing.then(async () => {
             const res = await this.reduce(action);
+
             this.io.to(`room:${this.id}`).emit("state", this.snapshot());
+
             return res;
         })
 
@@ -98,7 +100,9 @@ class Room {
         }
 
         this.status = "loading";
-        this.io.to(`room:${this.id}`).emit("state", this.snapshot());
+        this.endSong();
+
+        this.io.to(`room:${this.id}`).emit("state", this.snapshot())
 
         this.queueIndex -= 1;
         const song = this.queue[this.queueIndex];
@@ -107,13 +111,15 @@ class Room {
         this.playSong(song);
     }
 
-    async handlePlayNext() {
+    async handlePlayNext(emit) {
         if(this.queueIndex + 1 >= this.queue.length) {
             return;
         }
         
         this.status = "loading";
-        this.io.to(`room:${this.id}`).emit("state", this.snapshot());
+        this.endSong();
+
+        this.io.to(`room:${this.id}`).emit("state", this.snapshot())
 
         this.queueIndex += 1;
         const song = this.queue[this.queueIndex];
@@ -133,8 +139,6 @@ class Room {
             return;
         }
 
-        this.endSong();
-
         return this.handlePlayLast();
     }
 
@@ -142,8 +146,6 @@ class Room {
         if(this.queueIndex + 1 >= this.queue.length) {
             return;
         }
-
-        this.endSong();
 
         return this.handlePlayNext();
     }
@@ -156,11 +158,11 @@ class Room {
         if(this.status === "playing") {
             this.pauseTime = Date.now();
             this.status = "paused";
-            this.io.to(`room:${this.id}`).emit("song-paused", this.snapshot());
+            this.io.to(`room:${this.id}`).emit("song-paused");
         } else {
             this.startTime += Date.now() - this.pauseTime;
             this.status = "playing";
-            this.io.to(`room:${this.id}`).emit("song-played", this.snapshot());
+            this.io.to(`room:${this.id}`).emit("song-played");
         }
     }
 

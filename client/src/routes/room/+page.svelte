@@ -34,7 +34,7 @@
 
         socket.on("state", async (state) => {
             room = state;
-            
+
             if(audioSrc != `${PUBLIC_SERVER_URL}/songs/${room.song.id}.m4a`) {
                 audioSrc = `${PUBLIC_SERVER_URL}/songs/${room.song.id}.m4a`;
                 await loadAudio();
@@ -51,13 +51,11 @@
             room.queue.push(song);
         })
 
-        socket.on("song-paused", (state) => {
-            room = state;
+        socket.on("song-paused", () => {
             audioElem.pause();
         })
 
-        socket.on("song-played", (state) => {
-            room = state;
+        socket.on("song-played", () => {
             playAudio();
         })
 
