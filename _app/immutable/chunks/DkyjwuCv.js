@@ -1,0 +1,1 @@
+import{Y as e}from"./L3uowQN6.js";import"./BH20Lg01.js";var t=e([]);function n(e){let n={id:crypto.randomUUID(),inputData:``,...e};t.update(e=>[...e,n]),e.type==`toast`&&setTimeout(()=>{r(n.id)},3e3)}function r(e){e.onClose&&e.onClose(),t.update(t=>t.filter(t=>t.id!==e.id))}export{t as n,r,n as t};

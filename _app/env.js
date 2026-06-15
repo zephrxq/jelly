@@ -1,0 +1,1 @@
+export const env={"PUBLIC_SERVER_URL":"http://localhost:3000"}
