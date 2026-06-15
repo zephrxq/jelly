@@ -7,7 +7,7 @@
     import SkipBack from "@lucide/svelte/icons/skip-back";
     import SkipForward from "@lucide/svelte/icons/skip-forward";
     import Search from "@lucide/svelte/icons/search";
-    import { PUBLIC_SERVER, PUBLIC_SERVER_URL } from "$env/static/public";
+    import { PUBLIC_SERVER_URL } from "$env/static/public";
     import { goto } from "$app/navigation";
     import "../../animations.css";
 

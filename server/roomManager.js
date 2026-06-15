@@ -1,7 +1,6 @@
 import { customAlphabet } from "nanoid";
 import { spawn } from "child_process";
 import { fileExists } from "./utils.js";
-import { client } from "./redis.js";
 
 const nanoid = customAlphabet("1234567890abcdef", 8);
 
@@ -198,14 +197,6 @@ class Room {
                 if(code != 0) {
                     return reject(new Error(`yt-dlp exited with code ${code}`));
                 }
-
-                await client.set(
-                    `song-file:${song.id}`,
-                    songPath,
-                    {
-                        EX: song.duration + 3600
-                    }
-                )
 
                 resolve();
             })
