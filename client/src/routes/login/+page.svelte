@@ -55,11 +55,15 @@
     }
 </script>
 
-<form onsubmit={login}>
-    <p>Username or email</p>
-    <input bind:value={identifier}>
-    <p>Password</p>
-    <input bind:value={password}>
-    <p id="error">{errorText}</p>
-    <button type="submit">Log in</button>
-</form>
+<div id="login">
+    <h2>Log in</h2>
+    <form onsubmit={login}>
+        <p>Username or email</p>
+        <input bind:value={identifier}>
+        <p>Password</p>
+        <input bind:value={password}>
+        <p id="error">{errorText}</p>
+        <button type="submit">Log in</button>
+        <p id="redirect">Don't have an account? <a href="/signup">Sign up</a></p>
+    </form>
+</div>

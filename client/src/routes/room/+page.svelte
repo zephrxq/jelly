@@ -68,6 +68,7 @@
                 moveResize(event);
             }
         })
+        
         document.addEventListener("mouseup", (event) => {
             if(resizing) {
                 endResize(event);

@@ -49,15 +49,18 @@
     }
 </script>
 
-<form>
-    <p>Name</p>
-    <input bind:value={name}>
-    <p>Username</p>
-    <input bind:value={username}>
-    <p>Email</p>
-    <input bind:value={email}>
-    <p>Password</p>
-    <input bind:value={password} type="password">
-    <p id="error">{errorText}</p>
-    <button onclick={signup}>Sign up</button>
-</form>
+<div id="signup">
+    <form>
+        <p>Name</p>
+        <input bind:value={name}>
+        <p>Username</p>
+        <input bind:value={username}>
+        <p>Email</p>
+        <input bind:value={email}>
+        <p>Password</p>
+        <input bind:value={password} type="password">
+        <p id="error">{errorText}</p>
+        <button onclick={signup}>Sign up</button>
+        <p id="redirect">Already have an account? <a href="/login">Log in</a></p>
+    </form>
+</div>

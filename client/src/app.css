@@ -109,7 +109,7 @@ div {
     box-sizing: border-box;
 }
 
-h1, h2, h3, h4, h5, h6, p, button, input {
+h1, h2, h3, h4, h5, h6, p, a, button, input {
     color: var(--text);
     font-family: "Cabin", sans-serif;
     text-align: left;
@@ -129,6 +129,10 @@ h3 {
 
 p {
     font-size: 1rem;
+}
+
+a {
+    color: var(--primary-400);
 }
 
 button {
