@@ -6,6 +6,10 @@ class User {
     }
 
     joinRoom(room) {
+        if(this.room) {
+            this.leaveRoom(this.room);
+        }
+        
         this.room = room;
         room.joinRoom(this.data);
     }

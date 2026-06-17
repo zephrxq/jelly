@@ -22,7 +22,7 @@
         if(session.data) {
             goto("/home");
         } else {
-            goto("/login")
+            goto("/login");
         }
     })
 </script>
