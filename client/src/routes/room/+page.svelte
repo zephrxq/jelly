@@ -2,11 +2,7 @@
     import { onMount, onDestroy, tick } from "svelte";
     import { io } from "socket.io-client";
     import { addAlert } from "$lib/alerts.js";
-    import Play from "@lucide/svelte/icons/play";
-    import Pause from "@lucide/svelte/icons/pause";
-    import SkipBack from "@lucide/svelte/icons/skip-back";
-    import SkipForward from "@lucide/svelte/icons/skip-forward";
-    import Search from "@lucide/svelte/icons/search";
+    import { Play, Pause, SkipBack, SkipForward, Search, Users, LogOut, X } from "@lucide/svelte";
     import { PUBLIC_SERVER_URL } from "$env/static/public";
     import { goto } from "$app/navigation";
     import "../../animations.css";
@@ -20,6 +16,7 @@
     let playIcon = $state("play");
     let tabs = $state();
     let tabSizes = $state({ left: 25, middle: 50, right: 25 });
+    let windows = $state({ members: false });
     let resizing = null;
     let seeking = false;
     let mediaSource;
@@ -212,6 +209,10 @@
         resizing = null;
     }
 
+    function toggleWindow(window) {
+        windows[window] = !windows[window];
+    }
+
     function startSeeking(event) {
         seeking = true;
     }
@@ -248,7 +249,12 @@
             <button title="Copy ID" id="copy" onclick={copyId}>{`#${room.id}`}</button>
         </div>
         <div id="right">
-            <button onclick={leaveRoom}>Leave room</button>
+            <button class="secondary" onclick={() => toggleWindow("members")}>
+                <Users size={24}></Users>
+            </button>
+            <button class="secondary" onclick={leaveRoom}>
+                <LogOut size={24}></LogOut>
+            </button>
         </div>
     </div>
     <div id="tabs" bind:this={tabs}>
@@ -316,6 +322,21 @@
                 </div>
             {/each}
         </div>
+        <div id="members" class="window" hidden={!windows.members}>
+            <div id="title">
+                <h2>Members</h2>
+                <button>
+                    <X size={24} onclick={() => { toggleWindow("members") }}></X>
+                </button>
+            </div>
+            {#each room.members as member}
+                <div class="member">
+                    <p id="name">{member.name}</p>
+                    <p id="user">@{member.username}</p>
+                </div>
+            {/each}
+            <p></p>
+        </div>
     </div>
 </div>
 
@@ -358,6 +379,13 @@
 
     div#topbar div#right {
         margin-left: auto;
+    }
+
+    div#topbar div#right button {
+        height: 40px;
+        width: 40px;
+        padding: 8px;
+        margin-left: 8px;
     }
 
     div#tabs {
@@ -542,7 +570,7 @@
         margin-right: 32px;
     }
 
-    div#nowPlayingControls button:hover {
+    div#nowPlayingControls #buttons button:hover {
         background-color: var(--primary-600);
     }
 
@@ -586,5 +614,56 @@
         color: var(--text-300);
         text-overflow: ellipsis;
         overflow: hidden;
+    }
+
+    div.window {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        height: 75%;
+        width: 25%;
+        background-color: var(--primary-950);
+        border: 1px solid var(--primary-600);
+        border-radius: 8px;
+        padding: 0;
+    }
+
+    div.window #title {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        padding: 16px 24px;
+        background-color: var(--primary-900);
+        border-radius: 8px 8px 0 0;
+    }
+
+    div.window #title h2 {
+        margin: 0;
+    }
+
+    div.window #title button {
+        padding: 4px;
+        height: 32px;
+        width: 32px;
+        border-radius: 999px;
+        background-color: transparent;
+        margin-left: auto;
+    }
+
+    div.window #title button:hover {
+        background-color: var(--primary-600);
+    }
+
+    div.window div.member {
+        padding: 16px 24px;
+    }
+    
+    div.window div.member p {
+        margin: 0;
+    }
+
+    div.window div.member p#user {
+        color: var(--text-200);
     }
 </style>

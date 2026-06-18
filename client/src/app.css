@@ -147,8 +147,16 @@ button {
     transition: 0.1s;
 }
 
+button.secondary {
+    background-color: var(--primary-700);
+}
+
 button:hover {
     background-color: var(--primary-100);
+}
+
+button.secondary:hover {
+    background: var(--primary-600);
 }
 
 input {
