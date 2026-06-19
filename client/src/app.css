@@ -148,7 +148,7 @@ button {
 }
 
 button.secondary {
-    background-color: var(--primary-700);
+    background-color: var(--primary-800);
 }
 
 button:hover {
@@ -156,7 +156,7 @@ button:hover {
 }
 
 button.secondary:hover {
-    background: var(--primary-600);
+    background: var(--primary-700);
 }
 
 input {

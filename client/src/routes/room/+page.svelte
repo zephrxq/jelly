@@ -529,6 +529,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        box-shadow: 0px 0px 15px 5px var(--primary-900);
     }
 
     div#nowPlayingInfo img {
