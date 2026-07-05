@@ -98,8 +98,8 @@ class Room {
             return;
         }
 
-        this.status = "loading";
         this.endSong();
+        this.status = "loading";
 
         this.io.to(`room:${this.id}`).emit("state", this.snapshot())
 
@@ -115,8 +115,8 @@ class Room {
             return;
         }
         
-        this.status = "loading";
         this.endSong();
+        this.status = "loading";
 
         this.io.to(`room:${this.id}`).emit("state", this.snapshot())
 

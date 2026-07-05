@@ -31,6 +31,7 @@
 
         socket.on("state", async (state) => {
             room = state;
+            console.log(state.status);
 
             if(audioSrc != `${PUBLIC_SERVER_URL}/songs/${room.song.id}.m4a`) {
                 audioSrc = `${PUBLIC_SERVER_URL}/songs/${room.song.id}.m4a`;
