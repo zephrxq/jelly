@@ -238,6 +238,7 @@ class Room {
             songReady: this.songReady,
             status: this.status,
             startTime: this.startTime,
+            pauseTime: this.pauseTime,
             id: this.id
         }
     }

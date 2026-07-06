@@ -31,17 +31,18 @@
 
         socket.on("state", async (state) => {
             room = state;
-            console.log(state.status);
 
             if(audioSrc != `${PUBLIC_SERVER_URL}/songs/${room.song.id}.m4a`) {
                 audioSrc = `${PUBLIC_SERVER_URL}/songs/${room.song.id}.m4a`;
                 await loadAudio();
             }
-            
+
             if(room.status == "playing") {
                 if(audioElem.paused) {
                     playAudio();
                 }
+            } else {
+                audioElem.currentTime = (room.pauseTime - room.startTime) / 1000;
             }
         })
 
