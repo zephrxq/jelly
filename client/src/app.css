@@ -266,3 +266,26 @@ div.alert .buttons {
 div.alert button {
     margin: 0 0 0 8px;
 }
+
+div.loading {
+    width: 54px;
+    height: 54px;
+    border: 5px solid var(--text);
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    display: inline-block;
+    animation: rotation 0.75s linear infinite;
+}
+
+div.loading[hidden] {
+    display: none;
+}
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
