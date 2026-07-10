@@ -1,6 +1,4 @@
-import { writable } from "svelte/store";
-
-export const alerts = writable([]);
+import { alerts } from "./stores";
 
 export function addAlert(data) {
     const alert = {

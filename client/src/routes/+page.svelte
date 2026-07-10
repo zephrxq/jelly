@@ -4,8 +4,8 @@
     import { usernameClient } from "better-auth/client/plugins";
     import { onMount } from "svelte";
     import { PUBLIC_SERVER_URL } from "$env/static/public";
-    import "../animations.css";
-    
+    import { loading, loadingText } from "$lib/stores";
+
     const authClient = createAuthClient({
         baseURL: PUBLIC_SERVER_URL,
         plugins: [
@@ -17,7 +17,12 @@
     })
 
     onMount(async () => {
+        $loading = true;
+        $loadingText = "Fetching data...";
+
         const session = await authClient.getSession();
+
+        $loadingText = "Redirecting..."
 
         if(session.data) {
             goto("/home");
@@ -26,18 +31,3 @@
         }
     })
 </script>
-
-<div id="idk">
-    <div class="loading"></div>
-</div>
-
-<style>
-    div#idk {
-        height: 100%;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
-</style>

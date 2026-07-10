@@ -5,8 +5,7 @@
     import { Play, Pause, SkipBack, SkipForward, Search, Users, LogOut, X } from "@lucide/svelte";
     import { PUBLIC_SERVER_URL } from "$env/static/public";
     import { goto } from "$app/navigation";
-    import "../../animations.css";
-
+    
     let socket;
     let room = $state({});
     let searchQuery = $state();

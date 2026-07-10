@@ -1,8 +1,10 @@
 <script>
 	import favicon from "$lib/assets/favicon.svg";
 	import "../app.css";
-	import { alerts, closeAlert } from "$lib/alerts.js";
+	import { alerts } from "$lib/stores";
+	import { closeAlert } from "$lib/alerts.js";
 	import { fade } from "svelte/transition";
+  	import Loading from "$lib/Loading.svelte";
 
 	let { children } = $props();
 
@@ -24,6 +26,8 @@
 </svelte:head>
 
 {@render children()}
+
+<Loading></Loading>
 
 <div class="alerts">
 	{#each $alerts as alertData}
