@@ -188,7 +188,7 @@ class Room {
         }
 
         return new Promise((resolve, reject) => {
-            let spawnCmd = ["-P", "./songs", "-o", "%(id)s", "--cookies", "./server/cookies.txt", "--extractor-args", "youtube:player-client=web", "--extract-audio", "--audio-format", "m4a", "--no-playlist", "--quiet", "--no-warnings", `https://youtube.com/watch?v=${song.id}`];
+            let spawnCmd = ["-P", "./songs", "-o", "%(id)s", "--cookies", "./server/cookies.txt", "-f", "ba", "--no-playlist", "--quiet", "--no-warnings", `https://youtube.com/watch?v=${song.id}`];
 
             const ytDlp = spawn("yt-dlp", spawnCmd);
             
