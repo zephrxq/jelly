@@ -180,7 +180,7 @@ class Room {
     }
 
     async downloadSong(song) {
-        const songPath = `./songs/${song.id}.m4a`;
+        const songPath = `./songs/${song.id}`;
         const downloaded = await fileExists(songPath);
         
         if(downloaded) {
