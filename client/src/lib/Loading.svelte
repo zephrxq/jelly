@@ -6,10 +6,13 @@
     onNavigate(async ({ complete }) => {
         $loading = true;
 
-        complete.finally(() => {
+        try {
+            await complete;
+        } finally {
             $loading = false;
-        })
+        }
     })
+         
 </script>
 
 {#if $loading}
