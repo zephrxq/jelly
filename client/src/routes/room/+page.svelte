@@ -2,7 +2,7 @@
     import { onMount, onDestroy, tick } from "svelte";
     import { io } from "socket.io-client";
     import { addAlert } from "$lib/alerts.js";
-    import { Play, Pause, SkipBack, SkipForward, Search, Users, LogOut, X } from "@lucide/svelte";
+    import { Play, Pause, SkipBack, SkipForward, Search, Users, LogOut, X, ArrowLeft, ArrowRight, ArrowBigDown } from "@lucide/svelte";
     import { PUBLIC_SERVER_URL } from "$env/static/public";
     import { goto } from "$app/navigation";
     
@@ -10,6 +10,8 @@
     let room = $state({});
     let searchQuery = $state();
     let searchResults = $state([]);
+    let searchResultsPage = $state(0);
+    let searchResultsPages = $derived(Math.ceil(searchResults.length / 5));
     let audioElem = $state();
     let audioSrc = $state();
     let playIcon = $state("play");
@@ -135,6 +137,7 @@
         if(!room || !searchQuery) return;
         socket.emit("search", searchQuery, (data) => {
             searchResults = data;
+            searchResultsPage = 0;
         })
     }
 
@@ -266,16 +269,28 @@
                     <Search></Search>
                 </button>
             </div>
-            <div id="searchResults">
-                <div id="searchResultsScroll">
-                    {#each searchResults as searchResult, index}
-                        <button class="searchResult" onclick={() => addSong(searchResult.id.videoId)}>
-                            <h3>{decodeHtml(searchResult.snippet.title)}</h3>
-                            <p>{decodeHtml(searchResult.snippet.channelTitle)}</p>
-                        </button>
-                    {/each}
+            {#if Object.keys(searchResults).length > 0}
+                <div id="searchResults">
+                    <div id="searchResultsScroll">
+                    {console.log(searchResults)}
+                        {#each searchResults.slice(searchResultsPage * 5, Math.min(searchResults.length, searchResultsPage * 5 + 5)) as searchResult, index}
+                            <button class="searchResult" onclick={() => addSong(searchResult.id.videoId)}>
+                                <h3>{decodeHtml(searchResult.snippet.title)}</h3>
+                                <p>{decodeHtml(searchResult.snippet.channelTitle)}</p>
+                            </button>
+                        {/each}
+                        <div id="searchResultsControls">
+                            <button onclick={() => { if(searchResultsPage > 0) searchResultsPage -= 1}}>
+                                <ArrowLeft size={28}></ArrowLeft>
+                            </button>
+                            <p>Page {searchResultsPage + 1}</p>
+                            <button onclick={() => { if(searchResultsPage < searchResultsPages - 1) searchResultsPage += 1 }}>
+                                <ArrowRight size={28}></ArrowRight>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            {/if}
         </div>
         <button aria-label="Resize left" class="tab resizer" id="left" onmousedown={(event) => startResize(event)}>
             <div></div>
@@ -486,6 +501,16 @@
         padding: 8px;
     }
 
+    div#searchResultsControls {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+    }
+
+    div#searchResultsControls button {
+        background-color: transparent;
+    }
+
     button.searchResult {
         display: flex;
         flex-direction: column;
@@ -635,13 +660,13 @@
         display: flex;
         flex-direction: row;
         width: 100%;
-        padding: 16px 24px;
+        padding: 12px;
         background-color: var(--primary-900);
         border-radius: 8px 8px 0 0;
     }
 
     div.window #title h2 {
-        margin: 0;
+        margin: 0 0 0 8px;
     }
 
     div.window #title button {

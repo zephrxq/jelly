@@ -216,7 +216,7 @@ io.on("connection", (socket) => {
             part: "snippet",
             q: query,
             type: "video",
-            maxResults: 10,
+            maxResults: 50,
             order: "relevance",
             videoCategoryId: 10,
             key: apiKey
