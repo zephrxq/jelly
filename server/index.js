@@ -42,11 +42,11 @@ async function getSession(headers) {
 io.use(async (socket, next) => {
     const session = await getSession(socket.request.headers);
     
-    socket.data.user = session.user;
-
     if(!session) {
         return next(new Error("Forbidden"));
     }
+
+    socket.data.user = session.user;
 
     next();
 })

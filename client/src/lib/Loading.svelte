@@ -3,16 +3,13 @@
     import { loading, loadingText } from "./stores";
     import { onNavigate } from "$app/navigation";
     
-    onNavigate(async ({ complete }) => {
+    onNavigate(async ({ from, to, type, complete }) => {
         $loading = true;
 
-        try {
-            await complete;
-        } finally {
+        complete.finally(() => {
             $loading = false;
-        }
+        })
     })
-         
 </script>
 
 {#if $loading}
