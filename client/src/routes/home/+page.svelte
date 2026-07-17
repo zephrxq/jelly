@@ -57,6 +57,10 @@
             }
         })
     }
+
+    onDestroy(() => {
+        socket?.disconnect();
+    })
 </script>
 
 <div id="home">

@@ -272,7 +272,6 @@
             {#if Object.keys(searchResults).length > 0}
                 <div id="searchResults">
                     <div id="searchResultsScroll">
-                    {console.log(searchResults)}
                         {#each searchResults.slice(searchResultsPage * 5, Math.min(searchResults.length, searchResultsPage * 5 + 5)) as searchResult, index}
                             <button class="searchResult" onclick={() => addSong(searchResult.id.videoId)}>
                                 <h3>{decodeHtml(searchResult.snippet.title)}</h3>
