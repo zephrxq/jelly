@@ -104,6 +104,13 @@
         try {
             syncTime();
             await audioElem.play();
+
+            if("mediaSession" in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: room.song.title,
+                    artist: room.song.artist
+                })
+            }
         } catch(error) {
             addAlert({ text: "Failed to play", onClose: () => audioElem.play() });
         }
