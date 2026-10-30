@@ -242,6 +242,23 @@ io.on("connection", (socket) => {
             time: time
         })
     })
+
+    socket.on("send-message", async (message, callback) => {
+        user = userManager.getUser(userId);
+        room = roomManager.getRoom(user.room.id);
+
+        if(!user.room) {
+            return;
+        }
+
+        await room.dispatch({
+            type: "CHAT",
+            message: message,
+            user: user
+        })
+
+        callback();
+    })
 })
 
 setInterval(() => {

@@ -29,9 +29,10 @@ class Room {
         this.processing = Promise.resolve();
         this.id = id;
         this.io = io;
+        this.messages = [];
     }
 
-    dispatch(action) {
+    async dispatch(action) {
         const result = this.processing.then(async () => {
             const res = await this.reduce(action);
 
@@ -79,6 +80,10 @@ class Room {
 
             case "SEEK": {
                 return this.handleSeek(action.time);
+            }
+
+            case "CHAT": {
+                return this.handleChat(action.user, action.message)
             }
         }
     }
@@ -179,6 +184,13 @@ class Room {
         this.startTime = Date.now() - (time);
     }
 
+    handleChat(user, message) {
+        this.messages.push({
+            user: user.data,
+            message: message
+        })
+    }
+
     async downloadSong(song) {
         const songPath = `./songs/${song.id}`;
         const downloaded = await fileExists(songPath);
@@ -239,7 +251,8 @@ class Room {
             status: this.status,
             startTime: this.startTime,
             pauseTime: this.pauseTime,
-            id: this.id
+            id: this.id,
+            messages: this.messages
         }
     }
 

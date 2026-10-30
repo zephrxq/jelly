@@ -2,7 +2,7 @@
     import { onMount, onDestroy, tick } from "svelte";
     import { io } from "socket.io-client";
     import { addAlert } from "$lib/alerts.js";
-    import { Play, Pause, SkipBack, SkipForward, Search, Users, LogOut, X, ArrowLeft, ArrowRight, ArrowBigDown } from "@lucide/svelte";
+    import { Play, Pause, SkipBack, SkipForward, Search, Users, LogOut, X, ArrowLeft, ArrowRight, ArrowBigDown, Send } from "@lucide/svelte";
     import { PUBLIC_SERVER_URL } from "$env/static/public";
     import { goto } from "$app/navigation";
     
@@ -17,13 +17,16 @@
     let playIcon = $state("play");
     let tabs = $state();
     let tabSizes = $state({ left: 25, middle: 50, right: 25 });
-    let windows = $state({ members: false });
+    let windows = $state({ members: false, chat: false });
+    let infoTab = $state("queue");
+    let chatInput = $state();
     let resizing = null;
     let seeking = false;
     let mediaSource;
     let sourceBuffer;
     let audioQueue = [];
     let currentTime = $state();
+    let chatMessages = $state();
 
     onMount(async () => {
         socket = io(PUBLIC_SERVER_URL, {
@@ -250,6 +253,15 @@
 
         currentTime = audioElem.currentTime;
     }
+
+    function sendMessage() {
+        if(chatInput) {
+            socket.emit("send-message", chatInput, () => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            })
+            chatInput = "";
+        }
+    }
 </script>
 
 <div id="room">
@@ -333,16 +345,38 @@
             <div></div>
         </button>
         <div id="info" class="tab" style="flex-basis: {tabSizes.right}%">
-            <h2>Queue</h2>
-            {#each room.queue as song}
-                <div class="song">
-                    <img alt="Thumbnail" src={song.thumbnail}>
-                    <div class="song-info">
-                        <h3 id="title">{song.title}</h3>
-                        <p id="artist">{song.artist}</p>
+            <div id="info-switcher">
+                <button onclick={() => infoTab = "queue"} class={infoTab == "queue" ? "active" : ""}><h2>Queue</h2></button>
+                <button onclick={() => infoTab = "chat"} class={infoTab == "chat" ? "active" : ""}><h2>Chat</h2></button>
+            </div>
+            {#if infoTab == "queue"}
+                <div id="queue">
+                    {#each room.queue as song}
+                        <div class="song">
+                            <img alt="Thumbnail" src={song.thumbnail}>
+                            <div class="song-info">
+                                <h3 id="title">{song.title}</h3>
+                                <p id="artist">{song.artist}</p>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            {:else if infoTab == "chat"}
+                <div id="chat">
+                    <div id="chat-messages" bind:this={chatMessages}>
+                        {#each room.messages as message}
+                            <h3>{message.user.name}</h3>
+                            <p>{message.message}</p>
+                        {/each}
+                    </div>
+                    <div id="chat-input">
+                        <input bind:value={chatInput} onkeydown={(event) => { if(event.key == "Enter") sendMessage(); }}>
+                        <button onclick={sendMessage}>
+                            <Send></Send>
+                        </button>
                     </div>
                 </div>
-            {/each}
+            {/if}
         </div>
         <div id="members" class="window" hidden={!windows.members}>
             <div id="title">
@@ -470,7 +504,6 @@
         box-sizing: border-box;
         width: 0%;
         padding: 8px 0 8px 16px;
-        background-color: inherit;
         background-color: transparent;
         border: none;
     }
@@ -609,12 +642,75 @@
 
     div#info {
         width: 25%;
+        overflow-y: auto;
+        display: flex;
         flex-direction: column;
+        overflow-y: hidden;
+    }
+
+    div#queue, div#chat {
+        max-height: 90%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    div#info-switcher {
+        width: 100%;
+        height: fit-content;
+    }
+
+    div#info-switcher button {
+        background-color: var(--background);
+        margin: 0;
+        padding: 8px;
+    }
+
+    div#info-switcher button:hover {
+        background-color: var(--background-800);
+    }
+
+    div#info-switcher button.active {
+        background-color: var(--background-700);
+    }
+
+    div#info-switcher button h2 {
+        margin: 0;
+    }
+
+    div#chat-messages {
+        height: 100%;
         overflow-y: auto;
     }
 
-    div#info > h2 {
-        margin: 0 0 16px 0;
+    div#chat-input {
+        display: flex;
+        flex-direction: row;
+        background-color: var(--primary-700);
+        border-radius: 999px;
+        border: 1px solid transparent;
+    }
+
+    div#chat-input input {
+        width: 100%;
+        border-radius: 999px 0 0 999px;
+        background-color: transparent;
+        border: none;
+    }
+
+    div#chat-input button {
+        border-radius: 0 999px 999px 0;
+        background-color: transparent;
+        padding: 8px 12px;
+    }
+
+    div#chat-input:hover {
+        background-color: var(--primary-600);
+    }
+
+    div#chat-input:has(input:focus) {
+        background-color: var(--primary-700);
+        border-color: var(--primary-200);
     }
 
     div.song {
@@ -684,19 +780,19 @@
         margin-left: auto;
     }
 
-    div.window #title button:hover {
+    div.window#members #title button:hover {
         background-color: var(--primary-600);
     }
 
-    div.window div.member {
+    div.window#members div.member {
         padding: 16px 24px;
     }
     
-    div.window div.member p {
+    div.window#members div.member p {
         margin: 0;
     }
 
-    div.window div.member p#user {
+    div.window#members div.member p#user {
         color: var(--text-200);
     }
 </style>
