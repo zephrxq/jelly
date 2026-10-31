@@ -706,7 +706,7 @@
     }
 
     div#chat-message h3 {
-        margin: 16px 0 4px 0;
+        margin: 16px 0 8px 0;
     }
 
     div#chat-message:first-of-type h3 {
