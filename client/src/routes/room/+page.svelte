@@ -367,12 +367,16 @@
                     {/each}
                 </div>
             {:else if infoTab == "chat"}
-                {(async () => { await scrollChat() })()}
+                {void (async () => { await scrollChat() })()}
                 <div id="chat">
                     <div id="chat-messages" bind:this={chatMessages}>
-                        {#each room.messages as message}
-                            <h3>{message.user.name}</h3>
-                            <p>{message.message}</p>
+                        {#each room.messages as message, i}
+                            <div id="chat-message">
+                                {#if room.messages[i-1]?.user.username != message.user.username}
+                                    <h3>{message.user.name}</h3>
+                                {/if}
+                                <p>{message.message}</p>
+                            </div>
                         {/each}
                     </div>
                     <div id="chat-input">
@@ -652,18 +656,22 @@
         display: flex;
         flex-direction: column;
         overflow-y: hidden;
+        height: 100%;
     }
 
     div#queue, div#chat {
-        height: 90%;
         width: 100%;
         display: flex;
         flex-direction: column;
+        flex: 1;
+        min-height: 0;
     }
 
     div#info-switcher {
         width: 100%;
         height: fit-content;
+        flex-shrink: 0;
+        margin-bottom: 16px;
     }
 
     div#info-switcher button {
@@ -687,6 +695,26 @@
     div#chat-messages {
         height: 100%;
         overflow-y: auto;
+        border: thin solid var(--background-800);
+        border-radius: 8px;
+        padding: 8px;
+    }
+
+    div#chat-message {
+        margin: 0;
+        padding: 0 4px;
+    }
+
+    div#chat-message h3 {
+        margin: 16px 0 4px 0;
+    }
+
+    div#chat-message:first-of-type h3 {
+        margin-top: 0;
+    }
+
+    div#chat-message p {
+        margin: 4px 0;
     }
 
     div#chat-input {
@@ -695,6 +723,7 @@
         background-color: var(--primary-700);
         border-radius: 999px;
         border: 1px solid transparent;
+        margin-top: 16px;
     }
 
     div#chat-input input {
