@@ -41,10 +41,10 @@
                 await loadAudio();
             }
 
-            if(room.status == "playing") {
-                if(audioElem.paused) {
-                    playAudio();
-                }
+            if(room.status == "playing" && audioElem.paused) {
+                await playAudio();
+            } else if(room.status == "paused" && !audioElem.paused) {
+                audioElem.pause();
             } else {
                 audioElem.currentTime = (room.pauseTime - room.startTime) / 1000;
             }
@@ -58,8 +58,8 @@
             audioElem.pause();
         })
 
-        socket.on("song-played", () => {
-            playAudio();
+        socket.on("song-played", async () => {
+            await playAudio();
         })
 
         socket.on("leave-room", () => {
@@ -95,11 +95,12 @@
         socket?.disconnect();
     })
 
-    function loadAudio() {
-        return new Promise((resolve, reject) => {
-            audioElem.load();
+    async function loadAudio() {
+        await tick();
 
-            audioElem.addEventListener("canplaythrough", resolve, { once: true });
+        return new Promise((resolve, reject) => {
+            audioElem.addEventListener("canplay", resolve, { once: true });
+            audioElem.load();
         })
     }
 
@@ -257,10 +258,14 @@
     function sendMessage() {
         if(chatInput) {
             socket.emit("send-message", chatInput, () => {
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                scrollChat();
             })
             chatInput = "";
         }
+    }
+
+    function scrollChat() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 </script>
 
@@ -347,7 +352,7 @@
         <div id="info" class="tab" style="flex-basis: {tabSizes.right}%">
             <div id="info-switcher">
                 <button onclick={() => infoTab = "queue"} class={infoTab == "queue" ? "active" : ""}><h2>Queue</h2></button>
-                <button onclick={() => infoTab = "chat"} class={infoTab == "chat" ? "active" : ""}><h2>Chat</h2></button>
+                <button onclick={() => infoTab = "chat" } class={infoTab == "chat" ? "active" : ""}><h2>Chat</h2></button>
             </div>
             {#if infoTab == "queue"}
                 <div id="queue">
@@ -362,6 +367,7 @@
                     {/each}
                 </div>
             {:else if infoTab == "chat"}
+                {(async () => { await scrollChat() })()}
                 <div id="chat">
                     <div id="chat-messages" bind:this={chatMessages}>
                         {#each room.messages as message}
@@ -649,7 +655,7 @@
     }
 
     div#queue, div#chat {
-        max-height: 90%;
+        height: 90%;
         width: 100%;
         display: flex;
         flex-direction: column;

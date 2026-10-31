@@ -111,7 +111,7 @@ class Room {
         this.queueIndex -= 1;
         const song = this.queue[this.queueIndex];
         
-        await this.downloadSong(song);
+        void await this.downloadSong(song);
         this.playSong(song);
     }
 
@@ -128,13 +128,13 @@ class Room {
         this.queueIndex += 1;
         const song = this.queue[this.queueIndex];
 
-        await this.downloadSong(song);
+        void this.downloadSong(song);
         this.playSong(song);
 
         const downloadQueue = this.queue.slice(this.queueIndex + 1, this.queueIndex + 5);
 
         void Promise.allSettled(downloadQueue.map((queueSong) => {
-            return this.downloadSong(queueSong);
+            return void this.downloadSong(queueSong);
         }))
     }
 
@@ -162,11 +162,9 @@ class Room {
         if(this.status === "playing") {
             this.pauseTime = Date.now();
             this.status = "paused";
-            this.io.to(`room:${this.id}`).emit("song-paused");
         } else {
             this.startTime += Date.now() - this.pauseTime;
             this.status = "playing";
-            this.io.to(`room:${this.id}`).emit("song-played");
         }
     }
 
