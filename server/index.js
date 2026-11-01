@@ -251,12 +251,9 @@ io.on("connection", (socket) => {
             return;
         }
 
-        await room.dispatch({
-            type: "CHAT",
-            message: message,
-            user: user
-        })
-
+        await room.handleChat(user, message);
+        
+        io.to(`room:${room.id}`).emit("messages", room.snapshot().messages);
         callback();
     })
 })

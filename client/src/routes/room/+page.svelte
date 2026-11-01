@@ -41,10 +41,10 @@
                 await loadAudio();
             }
 
-            if(room.status == "playing" && audioElem.paused) {
-                await playAudio();
-            } else if(room.status == "paused" && !audioElem.paused) {
-                audioElem.pause();
+            if(room.status == "playing") {
+                if(audioElem.paused) {
+                    playAudio();
+                }
             } else {
                 audioElem.currentTime = (room.pauseTime - room.startTime) / 1000;
             }
@@ -64,6 +64,10 @@
 
         socket.on("leave-room", () => {
             goto("/home");
+        })
+
+        socket.on("messages", (messages) => {
+            room.messages = messages;
         })
 
         document.addEventListener("mousemove", (event) => {

@@ -81,10 +81,6 @@ class Room {
             case "SEEK": {
                 return this.handleSeek(action.time);
             }
-
-            case "CHAT": {
-                return this.handleChat(action.user, action.message)
-            }
         }
     }
 
