@@ -90,7 +90,7 @@ class Room {
         if(!this.song.id) {
             return this.handlePlayNext();
         } else {
-            void this.downloadSong(song);
+            this.downloadSong(song).catch(console.error);
         }
     }
     
@@ -107,7 +107,7 @@ class Room {
         this.queueIndex -= 1;
         const song = this.queue[this.queueIndex];
         
-        void await this.downloadSong(song);
+        await this.downloadSong(song);
         this.playSong(song);
     }
 
@@ -124,13 +124,13 @@ class Room {
         this.queueIndex += 1;
         const song = this.queue[this.queueIndex];
 
-        void this.downloadSong(song);
+        await this.downloadSong(song);
         this.playSong(song);
 
         const downloadQueue = this.queue.slice(this.queueIndex + 1, this.queueIndex + 5);
 
         void Promise.allSettled(downloadQueue.map((queueSong) => {
-            return void this.downloadSong(queueSong);
+            return this.downloadSong(queueSong);
         }))
     }
 

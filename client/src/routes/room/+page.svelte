@@ -268,7 +268,9 @@
         }
     }
 
-    function scrollChat() {
+    async function scrollChat() {
+        await tick();
+        
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 </script>
@@ -371,7 +373,6 @@
                     {/each}
                 </div>
             {:else if infoTab == "chat"}
-                {void (async () => { await scrollChat() })()}
                 <div id="chat">
                     <div id="chat-messages" bind:this={chatMessages}>
                         {#each room.messages as message, i}
@@ -383,6 +384,7 @@
                             </div>
                         {/each}
                     </div>
+                    {void (() => { scrollChat() })()}
                     <div id="chat-input">
                         <input bind:value={chatInput} onkeydown={(event) => { if(event.key == "Enter") sendMessage(); }}>
                         <button onclick={sendMessage}>

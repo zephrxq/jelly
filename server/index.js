@@ -23,6 +23,8 @@ const io = new Server(httpServer, {
 
 const apiKey = process.env.API_KEY;
 
+app.set("trust proxy", 1);
+
 async function getSession(headers) {
     const session = await auth.api.getSession({
         headers: headers
@@ -272,6 +274,18 @@ app.use(cors({
     origin: process.env.CLIENT_URL,
     credentials: true
 }))
+
+app.use((req, res, next) => {
+    console.log({
+        ip: req.ip,
+        method: req.method,
+        path: req.originalUrl,
+        timestamp: new Date().toISOString()
+    })
+
+    next();
+})
+
 app.all("/api/auth/{*any}", toNodeHandler(auth.handler));
 app.use("/songs", express.static("./songs"));
 app.use(express.json());
