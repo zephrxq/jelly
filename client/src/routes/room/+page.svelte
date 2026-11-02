@@ -43,23 +43,21 @@
 
             if(room.status == "playing") {
                 if(audioElem.paused) {
-                    playAudio();
+                    await playAudio();
                 }
             } else {
                 audioElem.currentTime = (room.pauseTime - room.startTime) / 1000;
+            }
+
+            if(room.status == "paused") {
+                if(!audioElem.paused) {
+                    audioElem.pause();
+                }
             }
         })
 
         socket.on("song-added", (song) => {
             room.queue.push(song);
-        })
-
-        socket.on("song-paused", () => {
-            audioElem.pause();
-        })
-
-        socket.on("song-played", async () => {
-            await playAudio();
         })
 
         socket.on("leave-room", () => {
