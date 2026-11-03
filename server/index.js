@@ -10,6 +10,7 @@ import { parse } from "tinyduration";
 import { auth } from "./auth.js";
 import { userManager } from "./userManager.js";
 import { roomManager } from "./roomManager.js";
+import { exec } from "child_process";
 
 const app = express();
 const httpServer = createServer(app);
@@ -131,40 +132,25 @@ io.on("connection", (socket) => {
             id: songId,
             key: apiKey
         })
+        
+        const execCmd = `yt-dlp ${songId} --print '{\"id\":%(id)j,\"title\":%(title)j,\"artist\":%(artist,uploader)j,\"duration\":%(duration*1000)s,\"thumbnail\":%(thumbnails.-1.url)j}'`;
 
-        fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`)
-            .then((res) => res.json())
-            .then(async (data) => {
-                if(!data.items || data.items.length == 0) {
-                    callback({
-                        status: "fail",
-                        reason: "Invalid video"
-                    })
-                    return;
-                }
+        exec(execCmd, (error, stdout, stderr) => {
+            if(error) return callback({ status: "fail", reason: "Failed to fetch video data" });
 
-                const song = data.items[0];
-                const songDuration = parse(song.contentDetails.duration);
-                const songData = {
-                    id: song.id,
-                    title: song.snippet.title,
-                    artist: song.snippet.channelTitle,
-                    duration: ((songDuration.hours || 0) * 3600 + (songDuration.minutes || 0) * 60 + (songDuration.seconds || 0)) * 1000, // ms
-                    thumbnail:
-                        song.snippet.thumbnails.maxres?.url ||
-                        song.snippet.thumbnails.standard?.url ||
-                        song.snippet.thumbnails.high?.url ||
-                        song.snippet.thumbnails.medium?.url ||
-                        song.snippet.thumbnails.default?.url
-                }
-
-                io.to(`room:${room.id}`).emit("song-added", songData);
-
+            try {
+                const songData = JSON.parse(stdout.trim());
                 room.dispatch({
                     type: "ADD_SONG",
                     song: songData
                 })
-            })
+            } catch(error) {
+                callback({
+                    status: "fail",
+                    reason: "Failed to parse video data"
+                })
+            }
+        })
     })
 
     socket.on("toggle-pause", () => {

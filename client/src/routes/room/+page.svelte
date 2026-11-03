@@ -56,10 +56,6 @@
             }
         })
 
-        socket.on("song-added", (song) => {
-            room.queue.push(song);
-        })
-
         socket.on("leave-room", () => {
             goto("/home");
         })
@@ -155,7 +151,12 @@
     }
 
     function addSong(songId) {
-        socket.emit("add-song", songId);
+        socket.emit("add-song", songId, (addResult) => {
+            addAlert({
+                title: "Failed to add song",
+                text: addResult.text
+            })
+        })
     }
 
     function togglePause() {
