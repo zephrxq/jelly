@@ -133,7 +133,7 @@ io.on("connection", (socket) => {
             key: apiKey
         })
         
-        const execCmd = `yt-dlp ${songId} --print '{\"id\":%(id)j,\"title\":%(title)j,\"artist\":%(artist,uploader)j,\"duration\":%(duration*1000)s,\"thumbnail\":%(thumbnails.-1.url)j}'`;
+        const execCmd = `yt-dlp ${songId} --print '{\"id\":%(id)j,\"title\":%(title)j,\"artist\":%(artist,uploader)j,\"duration\":%(duration*1000)s,\"thumbnail\":%(thumbnails.-1.url)j}' --cookies "/server/cookies.txt"`;
 
         exec(execCmd, (error, stdout, stderr) => {
             if(error) return callback({ status: "fail", reason: "Failed to fetch video data" });
