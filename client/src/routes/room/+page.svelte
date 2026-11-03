@@ -154,7 +154,7 @@
         socket.emit("add-song", songId, (addResult) => {
             addAlert({
                 title: "Failed to add song",
-                text: addResult.text
+                text: addResult.reason
             })
         })
     }
