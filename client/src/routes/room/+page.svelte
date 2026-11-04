@@ -136,22 +136,23 @@
         }
     }
 
-    function decodeHtml(html) {
-        const text = document.createElement("textarea");
-        text.innerHTML = html;
-        return text.value;
-    }
-
     function search() {
         if(!room || !searchQuery) return;
-        socket.emit("search", searchQuery, (data) => {
-            searchResults = data;
+        socket.emit("search", searchQuery, (searchResult) => {
+            if(searchResult.status == "fail") {
+                return addAlert({
+                    title: "Failed to search",
+                    text: searchResult.reason
+                })
+            }
+            
+            searchResults = searchResult.searchResults;
             searchResultsPage = 0;
         })
     }
 
-    function addSong(songId) {
-        socket.emit("add-song", songId, (addResult) => {
+    function addSong(songIndex) {
+        socket.emit("add-song", songIndex, (addResult) => {
             addAlert({
                 title: "Failed to add song",
                 text: addResult.reason
@@ -302,9 +303,9 @@
                 <div id="searchResults">
                     <div id="searchResultsScroll">
                         {#each searchResults.slice(searchResultsPage * 5, Math.min(searchResults.length, searchResultsPage * 5 + 5)) as searchResult, index}
-                            <button class="searchResult" onclick={() => addSong(searchResult.id.videoId)}>
-                                <h3>{decodeHtml(searchResult.snippet.title)}</h3>
-                                <p>{decodeHtml(searchResult.snippet.channelTitle)}</p>
+                            <button class="searchResult" onclick={() => addSong(searchResultsPage * 5 + index)}>
+                                <h3>{searchResult.title}</h3>
+                                <p>{searchResult.artist}</p>
                             </button>
                         {/each}
                         <div id="searchResultsControls">

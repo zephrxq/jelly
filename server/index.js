@@ -56,6 +56,7 @@ io.use(async (socket, next) => {
 
 io.on("connection", (socket) => {
     const userId = socket.data.user?.id;
+    let searchResults = [];
 
     if(!userId) {
         socket.disconnect(true);
@@ -119,7 +120,7 @@ io.on("connection", (socket) => {
         socket.to(`user:${user.id}`).emit("leave-room");
     })
 
-    socket.on("add-song", (songId, callback) => {
+    socket.on("add-song", (songIndex, callback) => {
         user = userManager.getUser(userId);
         room = roomManager.getRoom(user.room.id);
 
@@ -127,29 +128,11 @@ io.on("connection", (socket) => {
             return;
         }
 
-        const params = new URLSearchParams({
-            part: "snippet,contentDetails",
-            id: songId,
-            key: apiKey
-        })
-        
-        const execCmd = `yt-dlp ${songId} --print '{\"id\":%(id)j,\"title\":%(title)j,\"artist\":%(artist,uploader)j,\"duration\":%(duration*1000)s,\"thumbnail\":%(thumbnails.-1.url)j}' --cookies "./server/cookies.txt"`;
+        const songData = searchResults[songIndex];
 
-        exec(execCmd, (error, stdout, stderr) => {
-            if(error) return callback({ status: "fail", reason: "Failed to fetch video data" });
-
-            try {
-                const songData = JSON.parse(stdout.trim());
-                room.dispatch({
-                    type: "ADD_SONG",
-                    song: songData
-                })
-            } catch(error) {
-                callback({
-                    status: "fail",
-                    reason: "Failed to parse video data"
-                })
-            }
+        room.dispatch({
+            type: "ADD_SONG",
+            song: songData
         })
     })
 
@@ -200,21 +183,20 @@ io.on("connection", (socket) => {
             return;
         }
 
-        const params = new URLSearchParams({
-            part: "snippet",
-            q: query,
-            type: "video",
-            maxResults: 50,
-            order: "relevance",
-            videoCategoryId: 10,
-            key: apiKey
-        })
+        const execCmd = `yt-dlp --flat-playlist "ytsearch50:${query}" --print '{\"id\":%(id)j,\"title\":%(title)j,\"artist\":%(artist,uploader)j,\"duration\":%(duration*1000)s,\"thumbnail\":%(thumbnails.-1.url)j}'`;
 
-        fetch(`https://www.googleapis.com/youtube/v3/search?${params}`)
-            .then((res) => res.json())
-            .then((data) => {
-                callback(data.items);
-            })
+        exec(execCmd, (error, stdout, stderr) => {
+            if(error) return callback({ status: "fail", reason: "Failed to fetch search data" });
+
+            try {
+                searchResults = stdout.split("\n").filter(line => line.trim() !== "").map((songData) => JSON.parse(songData.trim()));
+
+                callback({ status: "success", searchResults: searchResults });
+            } catch(error) {
+                console.log(error)
+                if(error) return callback({ status: "fail", reason: "Failed to parse search data" });
+            }
+        })
     })
 
     socket.on("seek", (time) => {
